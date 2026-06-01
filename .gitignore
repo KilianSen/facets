@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Brainstorm visual-companion artifacts
+.superpowers/
+
+# IDE
+.idea/
+
+# Local Claude settings
+.claude/settings.local.json
+
+# Env / local
+.env
+.env.local
+*.local
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,5 @@
+export * from './types'
+export { extractRules, rankWeight } from './rules'
+export { computeSignature, weightedSlope } from './signature'
+export { matchArchetype, signatureDistance } from './match'
+export { computeProfile, describeContingency } from './scoring'

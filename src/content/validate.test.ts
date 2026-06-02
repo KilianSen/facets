@@ -7,7 +7,7 @@ const base: Content = {
   dims: [{ id: 'warmth', name: 'Warmth', lowLabel: 'lo', highLabel: 'hi' }],
   questions: [{
     id: 'q1', prompt: 'p', kind: 'backbone', axis: 'closeness',
-    cases: [{ id: 'c1', label: 'c', axisLevel: 1 }],
+    cases: [{ id: 'c1', label: 'c', axisLevel: 1 }, { id: 'c2', label: 'c2', axisLevel: 0 }],
     options: [{ id: 'A', label: 'a', vector: { warmth: 1 } }],
   }],
   archetypes: [{ id: 'x', code: 'X', name: 'X', tagline: '', copy: '', signature: { closeness: { warmth: 1 } } }],

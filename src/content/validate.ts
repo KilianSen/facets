@@ -10,7 +10,7 @@ export function validateContent(content: Content): string[] {
 
   for (const q of content.questions) {
     if (q.kind === 'backbone') {
-      if (q.axis === undefined || !q.cases || q.cases.length < 1) {
+      if (q.axis === undefined || !q.cases || q.cases.length < 2) {
         errors.push(`backbone question "${q.id}" must have an axis and >=2 cases`)
       }
       if (q.axis) backboneAxes.add(q.axis)

@@ -33,6 +33,16 @@ describe('QuizFlow', () => {
     expect(onComplete.mock.calls[0][0][0].mode).toBe('depends')
   })
 
+  it('selects a flavor option with the matching number key (desktop)', async () => {
+    const onComplete = vi.fn()
+    const questions: Question[] = [
+      { id: 'q1', prompt: 'First?', kind: 'flavor', options: [{ id: 'X', label: 'Pick X', vector: {} }, { id: 'Y', label: 'Pick Y', vector: {} }] },
+    ]
+    render(<QuizFlow questions={questions} onComplete={onComplete} />)
+    await userEvent.keyboard('2')
+    expect(onComplete).toHaveBeenCalledWith([{ questionId: 'q1', mode: 'single', optionId: 'Y' }])
+  })
+
   it('Back returns to the previous question', async () => {
     const onComplete = vi.fn()
     const questions: Question[] = [

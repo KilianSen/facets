@@ -16,6 +16,7 @@ export function QuestionCard({
     <div className="flex flex-col gap-5">
       <h2 id={promptId} ref={headingRef} tabIndex={-1} className="text-lg font-medium text-white focus-visible:outline-none">{question.prompt}</h2>
       <OptionList options={question.options} labelledById={promptId} selectedId={selectedId} onSelect={onSingle} />
+      <p className="hidden text-xs text-white/30 [@media(pointer:fine)]:block">Tip: press 1–{question.options.length} to choose.</p>
       {question.cases && (
         <button
           type="button"

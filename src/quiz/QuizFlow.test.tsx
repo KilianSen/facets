@@ -46,6 +46,18 @@ describe('QuizFlow', () => {
     expect(screen.getByText('First?')).toBeInTheDocument()
   })
 
+  it('shows a first-run coach-mark on the folded depends screen and dismisses it', async () => {
+    const questions: Question[] = [{
+      id: 'q1', prompt: 'Depends?', kind: 'backbone', axis: 'closeness',
+      cases: [{ id: 'a', label: 'Case A', axisLevel: 1 }, { id: 'b', label: 'Case B', axisLevel: 0 }],
+      options: [{ id: 'X', label: 'Resp X', vector: {} }, { id: 'Y', label: 'Resp Y', vector: {} }],
+    }]
+    render(<QuizFlow questions={questions} onComplete={() => {}} />)
+    expect(screen.getByText(/New here\?/)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Got it'))
+    expect(screen.queryByText(/New here\?/)).not.toBeInTheDocument()
+  })
+
   it('shows progress as a labelled progressbar', () => {
     const questions: Question[] = [
       { id: 'q1', prompt: 'First?', kind: 'flavor', options: [{ id: 'X', label: 'X', vector: {} }] },

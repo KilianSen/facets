@@ -10,11 +10,17 @@ export function DimensionRanges({ dims, ranges }: { dims: BehaviorDim[]; ranges:
         const r = ranges[d.id] ?? { min: 0, max: 0, typical: 0 }
         const left = pct(r.min)
         const width = Math.max(2, pct(r.max) - pct(r.min))
+        const typ = pct(r.typical)
         return (
           <div key={d.id} className="text-xs">
-            <span className="text-white/70">{d.name}</span>
-            <div className="mt-1 h-1.5 w-full rounded-full bg-white/10">
-              <div className="h-1.5 rounded-full bg-sky-400/70" style={{ marginLeft: `${left}%`, width: `${width}%` }} />
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-white/40">{d.lowLabel}</span>
+              <span className="text-white/70">{d.name}</span>
+              <span className="text-white/40">{d.highLabel}</span>
+            </div>
+            <div className="relative mt-1 h-1.5 w-full rounded-full bg-white/10">
+              <div className="absolute h-1.5 rounded-full bg-sky-400/40" style={{ left: `${left}%`, width: `${width}%` }} />
+              <div className="absolute top-1/2 h-2.5 w-0.5 -translate-y-1/2 rounded-full bg-sky-300" style={{ left: `${typ}%` }} aria-hidden="true" />
             </div>
           </div>
         )

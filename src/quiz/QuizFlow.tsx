@@ -1,15 +1,25 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Answer, Question } from '../engine/types'
 import { useQuizState } from './useQuizState'
 import { QuestionCard } from './QuestionCard'
 import { DependsCard } from './DependsCard'
+import { Coachmark } from './Coachmark'
 
 const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
+const COACH_KEY = 'fptic.coach.v1'
 
 export function QuizFlow({ questions, onComplete }: { questions: Question[]; onComplete: (answers: Answer[]) => void }) {
   const { state, dispatch } = useQuizState(questions)
   const completed = useRef(false)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const [coachSeen, setCoachSeen] = useState(() => {
+    try { return localStorage.getItem(COACH_KEY) === '1' } catch { return false }
+  })
+
+  function dismissCoach() {
+    try { localStorage.setItem(COACH_KEY, '1') } catch { /* ignore */ }
+    setCoachSeen(true)
+  }
 
   useEffect(() => {
     if (state.phase === 'done' && !completed.current) {
@@ -66,6 +76,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
       {state.phase === 'depends' && current.cases && (
         <div className="flex flex-col gap-5">
           <h2 ref={headingRef} tabIndex={-1} className="text-lg font-medium text-white focus-visible:outline-none">{current.prompt}</h2>
+          {!coachSeen && <Coachmark onDismiss={dismissCoach} />}
           <DependsCard
             cases={current.cases}
             options={current.options}

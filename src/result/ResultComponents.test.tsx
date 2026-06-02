@@ -3,27 +3,66 @@ import { render, screen } from '@testing-library/react'
 import { ArchetypeHeader } from './ArchetypeHeader'
 import { SignatureMap } from './SignatureMap'
 import { DimensionRanges } from './DimensionRanges'
+import { BaselineReadout } from './BaselineReadout'
+import { matchBand } from './matchBand'
 import type { Archetype, BehaviorDim } from '../engine/types'
 
 const arch: Archetype = { id: 'vault', code: 'VAULT', name: 'The Vault', tagline: 'selective', copy: 'Selective warmth.', signature: {} }
+const DIMS: BehaviorDim[] = [
+  { id: 'warmth', name: 'Warmth', lowLabel: 'stay cool', highLabel: 'get warm' },
+  { id: 'boldness', name: 'Boldness', lowLabel: 'play it safe', highLabel: 'take the risk' },
+]
 
-describe('result components', () => {
-  it('ArchetypeHeader renders code, name, and confidence', () => {
-    render(<ArchetypeHeader archetype={arch} confidence={0.82} />)
-    expect(screen.getByText('VAULT')).toBeInTheDocument()
-    expect(screen.getByText(/82% match/)).toBeInTheDocument()
+describe('matchBand', () => {
+  it('maps confidence to a qualitative band (never a percentage)', () => {
+    expect(matchBand(0.8)).toBe('Strong match')
+    expect(matchBand(0.4)).toBe('Solid match')
+    expect(matchBand(0.1)).toBe('Slight lean')
   })
-  it('SignatureMap renders contingency sentences', () => {
+})
+
+describe('ArchetypeHeader', () => {
+  it('makes the human name the heading and shows the code as a badge', () => {
+    render(<ArchetypeHeader archetype={arch} confidence={0.82} />)
+    expect(screen.getByRole('heading', { name: 'The Vault' })).toBeInTheDocument()
+    expect(screen.getByText('VAULT')).toBeInTheDocument()
+  })
+  it('shows a qualitative band, not a percentage', () => {
+    render(<ArchetypeHeader archetype={arch} confidence={0.82} />)
+    expect(screen.getByText('Strong match')).toBeInTheDocument()
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument()
+  })
+  it('shows a runner-up streak when provided', () => {
+    render(<ArchetypeHeader archetype={arch} confidence={0.82} runnerUpName="The Nurturer" />)
+    expect(screen.getByText(/streak of The Nurturer/)).toBeInTheDocument()
+  })
+})
+
+describe('SignatureMap', () => {
+  it('names the conditional premise above the tells', () => {
     render(<SignatureMap contingencies={[{ axis: 'closeness', dim: 'warmth', slope: 3, text: 'When close, you get warm.' }]} />)
+    expect(screen.getByText(/how you shift/i)).toBeInTheDocument()
     expect(screen.getByText('When close, you get warm.')).toBeInTheDocument()
   })
-  it('SignatureMap shows a consistency message when empty', () => {
+  it('shows a consistency message when empty', () => {
     render(<SignatureMap contingencies={[]} />)
     expect(screen.getByText(/consistent/)).toBeInTheDocument()
   })
-  it('DimensionRanges renders a bar per dimension', () => {
-    const dims: BehaviorDim[] = [{ id: 'warmth', name: 'Warmth', lowLabel: 'lo', highLabel: 'hi' }]
-    render(<DimensionRanges dims={dims} ranges={{ warmth: { min: -1, max: 2, typical: 0.5 } }} />)
+})
+
+describe('DimensionRanges', () => {
+  it('renders the dimension name and its endpoint labels', () => {
+    render(<DimensionRanges dims={[DIMS[0]]} ranges={{ warmth: { min: -1, max: 2, typical: 0.5 } }} />)
     expect(screen.getByText('Warmth')).toBeInTheDocument()
+    expect(screen.getByText('stay cool')).toBeInTheDocument()
+    expect(screen.getByText('get warm')).toBeInTheDocument()
+  })
+})
+
+describe('BaselineReadout', () => {
+  it('describes the strongest baseline leans (via dim labels) and a flexibility level', () => {
+    render(<BaselineReadout dims={DIMS} baseline={{ warmth: 1.5, boldness: -1 }} flexibility={1.8} />)
+    expect(screen.getByText(/get warm/)).toBeInTheDocument()     // warmth+ -> high label
+    expect(screen.getByText(/play it safe/)).toBeInTheDocument() // boldness- -> low label
   })
 })

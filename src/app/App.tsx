@@ -8,7 +8,7 @@ import { STORAGE_KEY, loadProgress, type StoredProgress } from '../quiz/useQuizS
 
 export const RESULT_STORAGE_KEY = 'fptic.result.v1'
 
-type View = 'landing' | 'quiz' | 'result'
+type View = 'landing' | 'quiz' | 'computing' | 'result'
 
 const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
 
@@ -58,7 +58,9 @@ export function App() {
     const computed = computeProfile(answers, CONTENT)
     try { localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(computed)) } catch { /* ignore */ }
     setProfile(computed)
-    setView('result')
+    // Brief "reading your signature" beat — computeProfile is instant, but the pause rewards the run.
+    setView('computing')
+    setTimeout(() => setView('result'), 900)
   }
 
   function restart() {
@@ -112,6 +114,14 @@ export function App() {
   }
 
   if (view === 'quiz') return <QuizFlow questions={questions} onComplete={handleComplete} />
+
+  if (view === 'computing') {
+    return (
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 text-center">
+        <p className="animate-pulse text-sm text-white/60">Reading your signature…</p>
+      </div>
+    )
+  }
 
   return <ResultPage profile={profile!} content={CONTENT} onRestart={restart} />
 }

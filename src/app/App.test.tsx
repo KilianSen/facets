@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { App } from './App'
+import { App, RESULT_STORAGE_KEY } from './App'
+import { computeProfile } from '../engine'
+import { CONTENT } from '../content'
 
 describe('App', () => {
   beforeEach(() => localStorage.clear())
@@ -13,15 +15,36 @@ describe('App', () => {
     expect(screen.getByText('Deep dive')).toBeInTheDocument()
   })
 
+  it('labels each mode with its length', () => {
+    render(<App />)
+    expect(screen.getByText(/24 questions/)).toBeInTheDocument()
+    expect(screen.getByText(/60 questions/)).toBeInTheDocument()
+  })
+
   it('Quick read starts a ~24-question short run', async () => {
     render(<App />)
     await userEvent.click(screen.getByText('Quick read'))
-    expect(screen.getByText('1 / 24')).toBeInTheDocument()
+    expect(screen.getByText('Question 1 of 24')).toBeInTheDocument()
   })
 
   it('Deep dive starts the full 60-question run', async () => {
     render(<App />)
     await userEvent.click(screen.getByText('Deep dive'))
-    expect(screen.getByText('1 / 60')).toBeInTheDocument()
+    expect(screen.getByText('Question 1 of 60')).toBeInTheDocument()
+  })
+
+  it('restores a cached result on mount instead of the landing page', () => {
+    localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(computeProfile([], CONTENT)))
+    render(<App />)
+    expect(screen.getByText('Take it again')).toBeInTheDocument()
+    expect(screen.queryByText('Quick read')).not.toBeInTheDocument()
+  })
+
+  it('"Take it again" clears the cached result and returns to landing', async () => {
+    localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(computeProfile([], CONTENT)))
+    render(<App />)
+    await userEvent.click(screen.getByText('Take it again'))
+    expect(screen.getByText('Quick read')).toBeInTheDocument()
+    expect(localStorage.getItem(RESULT_STORAGE_KEY)).toBeNull()
   })
 })

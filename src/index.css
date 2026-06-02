@@ -4,3 +4,8 @@
 
 :root { color-scheme: dark; }
 body { @apply bg-neutral-950 text-white antialiased; }
+
+@layer base {
+  /* Safety net so any focusable element we didn't style explicitly is still visible. */
+  :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+}

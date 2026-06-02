@@ -30,8 +30,20 @@ describe('QuizFlow', () => {
     await userEvent.click(screen.getByText('Next')) // confirm default ranking
     await userEvent.click(screen.getAllByText('Resp X')[0]) // map case A
     await userEvent.click(screen.getAllByText('Resp Y')[1]) // map case B
-    await userEvent.click(screen.getByText(/See result/))
+    await userEvent.click(screen.getByText('Continue'))
     expect(onComplete).toHaveBeenCalledTimes(1)
     expect(onComplete.mock.calls[0][0][0].mode).toBe('depends')
+  })
+
+  it('shows progress as a labelled progressbar', () => {
+    const questions: Question[] = [
+      { id: 'q1', prompt: 'First?', kind: 'flavor', options: [{ id: 'X', label: 'X', vector: {} }] },
+      { id: 'q2', prompt: 'Second?', kind: 'flavor', options: [{ id: 'Y', label: 'Y', vector: {} }] },
+    ]
+    render(<QuizFlow questions={questions} onComplete={() => {}} />)
+    const bar = screen.getByRole('progressbar')
+    expect(bar).toHaveAttribute('aria-valuenow', '0')
+    expect(bar).toHaveAttribute('aria-valuemax', '2')
+    expect(screen.getByText('Question 1 of 2')).toBeInTheDocument()
   })
 })

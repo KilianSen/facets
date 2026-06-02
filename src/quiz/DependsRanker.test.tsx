@@ -11,4 +11,9 @@ describe('DependsRanker', () => {
     await userEvent.click(screen.getByText('Next'))
     expect(onConfirm).toHaveBeenCalledWith(['b', 'a'])
   })
+
+  it('shows an instruction for how to order the cases', () => {
+    render(<DependsRanker cases={[{ id: 'a', label: 'Alpha', axisLevel: 1 }]} onConfirm={vi.fn()} />)
+    expect(screen.getByText(/most to least like you/i)).toBeInTheDocument()
+  })
 })

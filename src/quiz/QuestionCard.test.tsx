@@ -23,4 +23,10 @@ describe('QuestionCard', () => {
     await userEvent.click(screen.getByText(/It depends/))
     expect(onDepends).toHaveBeenCalled()
   })
+  it('groups the options under the prompt and hides the letter chip from a11y', () => {
+    render(<QuestionCard question={q} onSingle={() => {}} onDepends={() => {}} />)
+    expect(screen.getByRole('group', { name: 'How do you react?' })).toBeInTheDocument()
+    // the A/B/C chip is decorative → the option's accessible name is just its label
+    expect(screen.getByRole('button', { name: 'Option X' })).toBeInTheDocument()
+  })
 })

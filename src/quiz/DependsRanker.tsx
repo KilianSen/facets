@@ -12,21 +12,27 @@ export function DependsRanker({ cases, onConfirm }: { cases: Case[]; onConfirm: 
     setOrder(next)
   }
 
+  const btn = 'flex h-11 w-11 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
+
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-white/70">Move the most-true to the top.</p>
+      <p className="text-sm text-white/70">Order these from most to least like you — most on top.</p>
       <ul className="flex flex-col gap-2">
         {order.map((c, i) => (
-          <li key={c.id} className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3">
+          <li key={c.id} className="flex items-center justify-between rounded-xl bg-white/5 py-1 pl-4 pr-1">
             <span className="text-sm text-white/80">{c.label}</span>
             <span className="flex gap-1">
-              <button type="button" aria-label={`move ${c.label} up`} onClick={() => move(i, -1)} className="px-2 text-white/60 hover:text-white">↑</button>
-              <button type="button" aria-label={`move ${c.label} down`} onClick={() => move(i, 1)} className="px-2 text-white/60 hover:text-white">↓</button>
+              <button type="button" aria-label={`move ${c.label} up`} onClick={() => move(i, -1)} className={btn}>↑</button>
+              <button type="button" aria-label={`move ${c.label} down`} onClick={() => move(i, 1)} className={btn}>↓</button>
             </span>
           </li>
         ))}
       </ul>
-      <button type="button" onClick={() => onConfirm(order.map(c => c.id))} className="self-start rounded-xl bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
+      <button
+        type="button"
+        onClick={() => onConfirm(order.map(c => c.id))}
+        className="self-start rounded-xl bg-white/10 px-4 py-2 text-sm transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
+      >
         Next
       </button>
     </div>

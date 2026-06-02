@@ -13,6 +13,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
   const { state, dispatch } = useQuizState(questions)
   const completed = useRef(false)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const continueRef = useRef<HTMLButtonElement>(null)
   const [coachSeen, setCoachSeen] = useState(() => {
     try { return localStorage.getItem(COACH_KEY) === '1' } catch { return false }
   })
@@ -41,21 +42,25 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
     function onKey(e: KeyboardEvent) {
       const cur = questions[state.index]
       if (!cur) return
+      const active = document.activeElement
+      const tag = (active?.tagName ?? '').toLowerCase()
       if (state.phase === 'single') {
+        // Don't steal a digit from a focused control (Back / ＋ It depends / an option).
+        if (tag === 'button' || tag === 'a') return
         const n = Number(e.key)
         if (Number.isInteger(n) && n >= 1 && n <= cur.options.length) {
           e.preventDefault()
           dispatch({ type: 'ANSWER_SINGLE', optionId: cur.options[n - 1].id })
         }
       } else if (state.phase === 'depends' && e.key === 'Enter' && state.canCommit) {
-        const tag = (document.activeElement?.tagName ?? '').toLowerCase()
-        if (tag !== 'button' && tag !== 'a') { e.preventDefault(); commit() }
+        // Commit from anywhere except the Continue button itself (it activates natively).
+        if (active !== continueRef.current) { e.preventDefault(); commit() }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.phase, state.index, state.canCommit, questions])
+  }, [state.phase, state.index, state.canCommit, coachSeen, questions])
 
   if (state.phase === 'done') return null
   const current = questions[state.index]
@@ -133,6 +138,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
               )
               : <span className="hidden text-xs text-white/30 [@media(pointer:fine)]:inline">press ⏎ when done</span>}
             <button
+              ref={continueRef}
               type="button"
               onClick={commit}
               disabled={!state.canCommit}

@@ -4,6 +4,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useReducedMotion } from 'framer-motion'
 import type { Case, Option } from '../engine/types'
 import { reorderByIds } from './reorder'
 
@@ -21,7 +22,8 @@ function Row({
   onMove: (index: number, dir: -1 | 1) => void
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: c.id })
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1, zIndex: isDragging ? 10 : undefined }
+  const reduce = useReducedMotion()
+  const style = { transform: CSS.Transform.toString(transform), transition: reduce ? undefined : transition, opacity: isDragging ? 0.6 : 1, zIndex: isDragging ? 10 : undefined }
 
   const selectedIdx = options.findIndex(o => mapping[c.id] === o.id)
   const tabbable = selectedIdx >= 0 ? selectedIdx : 0
@@ -35,16 +37,17 @@ function Row({
   }
 
   return (
-    <li ref={setNodeRef} style={style} className="rounded-beam bg-white/[0.04] p-3 md:flex md:items-center md:gap-4">
-      <div className="mb-2 flex items-center gap-2 md:mb-0 md:w-56 md:shrink-0">
+    <li ref={setNodeRef} style={style} className="rounded-beam bg-white/[0.04] p-3 md:flex md:items-start md:gap-4">
+      <div className="mb-2 flex items-center gap-2 md:mb-0 md:w-52 md:shrink-0 md:pt-2">
         <button
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
+          type="button"
           aria-label={`drag to reorder ${c.label}`}
           className={`flex h-8 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-white/40 hover:text-white/70 active:cursor-grabbing ${ring}`}
         >
-          ⠿
+          <span aria-hidden="true">⠿</span>
         </button>
         <span className="tabular-nums text-xs text-white/40">{index + 1}</span>
         <span className="text-sm text-white/85">{c.label}</span>
@@ -53,7 +56,7 @@ function Row({
           <button type="button" aria-label={`move ${c.label} down`} onClick={() => onMove(index, 1)} className={moveBtn}>↓</button>
         </span>
       </div>
-      <div role="radiogroup" aria-label={c.label} className="flex flex-wrap gap-2 md:flex-1 md:flex-nowrap md:justify-end">
+      <div role="radiogroup" aria-label={c.label} className={`grid grid-cols-1 gap-2 md:flex-1 ${options.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         {options.map((o, idx) => {
           const checked = mapping[c.id] === o.id
           return (
@@ -65,7 +68,7 @@ function Row({
               tabIndex={idx === tabbable ? 0 : -1}
               onKeyDown={e => onKey(e, idx)}
               onClick={() => onMap(c.id, o.id)}
-              className={`rounded-lg px-3 py-2 text-sm transition-colors ${ring} ${checked ? 'bg-accent/20 text-white ring-1 ring-accent/50' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${ring} ${checked ? 'bg-accent/20 text-white ring-1 ring-accent/50' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
             >
               {o.label}
             </button>

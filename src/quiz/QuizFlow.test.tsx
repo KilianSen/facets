@@ -43,6 +43,21 @@ describe('QuizFlow', () => {
     expect(onComplete).toHaveBeenCalledWith([{ questionId: 'q1', mode: 'single', optionId: 'Y' }])
   })
 
+  it('commits a completed backbone with Enter from a focused response chip', async () => {
+    const onComplete = vi.fn()
+    const questions: Question[] = [{
+      id: 'q1', prompt: 'Depends?', kind: 'backbone', axis: 'closeness',
+      cases: [{ id: 'a', label: 'Case A', axisLevel: 1 }, { id: 'b', label: 'Case B', axisLevel: 0 }],
+      options: [{ id: 'X', label: 'Resp X', vector: {} }, { id: 'Y', label: 'Resp Y', vector: {} }],
+    }]
+    render(<QuizFlow questions={questions} onComplete={onComplete} />)
+    await userEvent.click(within(screen.getByRole('radiogroup', { name: 'Case A' })).getByText('Resp X'))
+    await userEvent.click(within(screen.getByRole('radiogroup', { name: 'Case B' })).getByText('Resp Y'))
+    await userEvent.keyboard('{Enter}') // focus is on the just-clicked chip, not Continue
+    expect(onComplete).toHaveBeenCalledTimes(1)
+    expect(onComplete.mock.calls[0][0][0].mode).toBe('depends')
+  })
+
   it('Back returns to the previous question', async () => {
     const onComplete = vi.fn()
     const questions: Question[] = [

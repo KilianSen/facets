@@ -4,6 +4,7 @@ import { useQuizState } from './useQuizState'
 import { QuestionCard } from './QuestionCard'
 import { DependsCard } from './DependsCard'
 import { Coachmark } from './Coachmark'
+import { Reveal } from '../ui/Reveal'
 
 const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
 const COACH_KEY = 'fptic.coach.v1'
@@ -63,6 +64,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
         </div>
       </div>
 
+      <Reveal key={`q-${state.index}-${state.phase}`} className="flex flex-col gap-5">
       {state.phase === 'single' && (
         <QuestionCard
           question={current}
@@ -99,6 +101,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
           )}
         </div>
       )}
+      </Reveal>
     </div>
   )
 }

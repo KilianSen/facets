@@ -44,6 +44,14 @@ describe('DependsCard (folded rank + map)', () => {
     expect(onFillAll).toHaveBeenCalledWith('X')
   })
 
+  it('supports arrow-key selection within a case (roving radiogroup)', async () => {
+    const { onMap } = setup()
+    const groupA = screen.getByRole('radiogroup', { name: 'Case A' })
+    within(groupA).getAllByRole('radio')[0].focus()
+    await userEvent.keyboard('{ArrowRight}')
+    expect(onMap).toHaveBeenCalledWith('a', 'Y') // moved X (idx 0) -> Y (idx 1)
+  })
+
   it('disables Continue until canCommit, then commits', async () => {
     const { onCommit } = setup({ canCommit: true })
     await userEvent.click(screen.getByText('Continue'))

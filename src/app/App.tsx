@@ -5,17 +5,35 @@ import { selectQuestions, type RunMode } from '../content/selectQuestions'
 import { QuizFlow } from '../quiz/QuizFlow'
 import { ResultPage } from '../result/ResultPage'
 import { STORAGE_KEY, loadProgress, type StoredProgress } from '../quiz/useQuizState'
+import { decodeAnswers } from '../share/permalink'
+import { Reveal } from '../ui/Reveal'
 
 export const RESULT_STORAGE_KEY = 'fptic.result.v1'
 
 type View = 'landing' | 'quiz' | 'computing' | 'result'
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
+const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
 
-function loadResult(): Profile | null {
+interface CachedResult { profile: Profile; answers: Answer[] }
+
+function loadResult(): CachedResult | null {
   try {
     const raw = localStorage.getItem(RESULT_STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as Profile
+    if (raw) {
+      const p = JSON.parse(raw)
+      if (p && p.profile) return { profile: p.profile, answers: Array.isArray(p.answers) ? p.answers : [] }
+      if (p && p.archetype) return { profile: p as Profile, answers: [] } // legacy bare-profile cache
+    }
+  } catch { /* ignore */ }
+  return null
+}
+
+function fromPermalink(): CachedResult | null {
+  try {
+    const m = window.location.hash.match(/[#&]r=([^&]+)/)
+    if (!m) return null
+    const answers = decodeAnswers(m[1])
+    if (answers && answers.length) return { profile: computeProfile(answers, CONTENT), answers }
   } catch { /* ignore */ }
   return null
 }
@@ -33,10 +51,11 @@ function questionsFromIds(ids: string[]): Question[] {
 }
 
 export function App() {
-  const [cached] = useState(loadResult)
+  const [cached] = useState(() => fromPermalink() ?? loadResult())
   const [resume, setResume] = useState<StoredProgress | null>(() => (cached ? null : loadProgress()))
   const [view, setView] = useState<View>(cached ? 'result' : 'landing')
-  const [profile, setProfile] = useState<Profile | null>(cached)
+  const [profile, setProfile] = useState<Profile | null>(cached?.profile ?? null)
+  const [answers, setAnswers] = useState<Answer[]>(cached?.answers ?? [])
   const [questions, setQuestions] = useState<Question[]>([])
 
   function start(mode: RunMode) {
@@ -54,67 +73,65 @@ export function App() {
     setView('quiz')
   }
 
-  function handleComplete(answers: Answer[]) {
-    const computed = computeProfile(answers, CONTENT)
-    try { localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(computed)) } catch { /* ignore */ }
+  function handleComplete(a: Answer[]) {
+    const computed = computeProfile(a, CONTENT)
+    try { localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify({ profile: computed, answers: a })) } catch { /* ignore */ }
     setProfile(computed)
-    // Brief "reading your signature" beat — computeProfile is instant, but the pause rewards the run.
-    // The result is already persisted above, so a refresh during the beat rehydrates to 'result'.
+    setAnswers(a)
     setView('computing')
   }
 
+  function restart() {
+    clearStored()
+    setResume(null)
+    setProfile(null)
+    setAnswers([])
+    setQuestions([])
+    try { if (window.location.hash) window.history.replaceState(null, '', window.location.pathname) } catch { /* ignore */ }
+    setView('landing')
+  }
+
+  // Brief "reading your signature" beat before results (result is already persisted, so a
+  // refresh during the beat rehydrates straight to 'result').
   useEffect(() => {
     if (view !== 'computing') return
     const id = setTimeout(() => setView('result'), 900)
     return () => clearTimeout(id)
   }, [view])
 
-  function restart() {
-    clearStored()
-    setResume(null)
-    setProfile(null)
-    setQuestions([])
-    setView('landing')
-  }
-
   if (view === 'landing') {
     const inProgress = !!resume && resume.questionIds.length > 0 && resume.index < resume.questionIds.length
     return (
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center gap-6 px-5 text-center">
-        <h1 className="text-3xl font-bold">The personality test that lets you say "it depends."</h1>
-        <p className="text-sm text-white/70">Most tests force one box. Here you set the context for each question — and get a map of how you actually shift.</p>
+        <Reveal><p className="text-xs uppercase tracking-[0.3em] text-accent-soft/70">FPTIC</p></Reveal>
+        <Reveal delay={0.05}>
+          <h1 className="font-display text-4xl font-bold leading-[1.05] sm:text-5xl">The personality test that lets you say "it depends."</h1>
+        </Reveal>
+        <Reveal delay={0.12}>
+          <p className="text-sm leading-relaxed text-white/70">Most tests force one box. Here you set the context for each question — and get a map of how you actually shift.</p>
+        </Reveal>
 
         {inProgress && (
-          <button
-            type="button"
-            onClick={continueRun}
-            className={`rounded-2xl bg-sky-400/20 px-6 py-3 text-sm font-medium text-sky-100 transition-colors hover:bg-sky-400/30 ${ring}`}
-          >
-            Continue your run ({resume!.index}/{resume!.questionIds.length})
-          </button>
+          <Reveal delay={0.16}>
+            <button type="button" onClick={continueRun} className={`rounded-beam bg-accent/15 px-6 py-3 text-sm font-medium text-accent-soft shadow-glow transition-colors hover:bg-accent/25 ${ring}`}>
+              Continue your run ({resume!.index}/{resume!.questionIds.length})
+            </button>
+          </Reveal>
         )}
 
-        <div className="flex flex-col items-center gap-2">
+        <Reveal delay={0.2} className="flex flex-col items-center gap-2">
           {inProgress && <span className="text-xs text-white/40">or start fresh</span>}
           <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => start('short')}
-              className={`flex flex-col items-center gap-0.5 rounded-2xl bg-white/10 px-6 py-3 transition-colors hover:bg-white/20 ${ring}`}
-            >
+            <button type="button" onClick={() => start('short')} className={`flex flex-col items-center gap-0.5 rounded-beam bg-white/10 px-6 py-3 shadow-glow transition-all hover:bg-white/15 ${ring}`}>
               <span className="text-sm font-medium">Quick read</span>
               <span className="text-xs text-white/50">~24 questions · ~5 min</span>
             </button>
-            <button
-              type="button"
-              onClick={() => start('deep')}
-              className={`flex flex-col items-center gap-0.5 rounded-2xl border border-white/15 px-6 py-3 transition-colors hover:bg-white/10 ${ring}`}
-            >
+            <button type="button" onClick={() => start('deep')} className={`flex flex-col items-center gap-0.5 rounded-beam border border-white/15 px-6 py-3 transition-colors hover:bg-white/10 ${ring}`}>
               <span className="text-sm font-medium text-white/80">Deep dive</span>
               <span className="text-xs text-white/50">~60 questions · ~10 min · sharper result</span>
             </button>
           </div>
-        </div>
+        </Reveal>
       </div>
     )
   }
@@ -123,11 +140,20 @@ export function App() {
 
   if (view === 'computing') {
     return (
-      <div role="status" className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 text-center">
+      <div role="status" className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center gap-4 px-5 text-center">
+        <div
+          aria-hidden="true"
+          className="h-10 w-10 animate-beam-spin rounded-full"
+          style={{
+            background: 'conic-gradient(from 0deg, transparent, #22d3ee, #d946ef, transparent)',
+            WebkitMask: 'radial-gradient(closest-side, transparent 58%, #000 60%)',
+            mask: 'radial-gradient(closest-side, transparent 58%, #000 60%)',
+          }}
+        />
         <p className="animate-pulse text-sm text-white/60">Reading your signature…</p>
       </div>
     )
   }
 
-  return <ResultPage profile={profile!} content={CONTENT} onRestart={restart} />
+  return <ResultPage profile={profile!} content={CONTENT} answers={answers} onRestart={restart} />
 }

@@ -1,5 +1,20 @@
 import '@testing-library/jest-dom'
 
+// Framer Motion reads prefers-reduced-motion via matchMedia (absent in jsdom). Report reduced
+// motion so components render at their final state instantly and tests stay deterministic.
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = ((query: string) => ({
+    matches: query.includes('prefers-reduced-motion'),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia
+}
+
 // Node 22 ships a partial `localStorage` stub (missing `clear()`) that shadows jsdom's
 // implementation on the test global — and it also shadows `window.localStorage`. jsdom's
 // real backing Storage is exposed internally as `_localStorage` on its window, and vitest

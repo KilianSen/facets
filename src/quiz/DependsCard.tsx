@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react'
 import type { Case, Option } from '../engine/types'
 
 const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
@@ -32,34 +33,52 @@ export function DependsCard({
       <p className="text-sm text-white/70">Order these from most to least like you, and pick what you’d actually do in each.</p>
 
       <ol className="flex flex-col gap-3">
-        {ordered.map((c, i) => (
-          <li key={c.id} className="rounded-2xl bg-white/5 p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-sm text-white/85">
-                <span className="tabular-nums text-white/40">{i + 1}</span>
-                {c.label}
-              </span>
-              <span className="flex gap-1">
-                <button type="button" aria-label={`move ${c.label} up`} onClick={() => move(i, -1)} className={moveBtn}>↑</button>
-                <button type="button" aria-label={`move ${c.label} down`} onClick={() => move(i, 1)} className={moveBtn}>↓</button>
-              </span>
-            </div>
-            <div role="radiogroup" aria-label={c.label} className="flex flex-wrap gap-2">
-              {options.map(o => (
-                <button
-                  key={o.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={mapping[c.id] === o.id}
-                  onClick={() => onMap(c.id, o.id)}
-                  className={`rounded-lg px-3 py-2 text-sm transition-colors ${ring} ${mapping[c.id] === o.id ? 'bg-sky-400/30 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </li>
-        ))}
+        {ordered.map((c, i) => {
+          const selectedIdx = options.findIndex(o => mapping[c.id] === o.id)
+          const tabbable = selectedIdx >= 0 ? selectedIdx : 0
+          const onKey = (e: KeyboardEvent<HTMLButtonElement>, idx: number) => {
+            const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+            if (!d) return
+            e.preventDefault()
+            const next = (idx + d + options.length) % options.length
+            onMap(c.id, options[next].id)
+            const group = (e.currentTarget as HTMLElement).closest('[role="radiogroup"]')
+            group?.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus()
+          }
+          return (
+            <li key={c.id} className="rounded-beam bg-white/[0.04] p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-sm text-white/85">
+                  <span className="tabular-nums text-white/40">{i + 1}</span>
+                  {c.label}
+                </span>
+                <span className="flex gap-1">
+                  <button type="button" aria-label={`move ${c.label} up`} onClick={() => move(i, -1)} className={moveBtn}>↑</button>
+                  <button type="button" aria-label={`move ${c.label} down`} onClick={() => move(i, 1)} className={moveBtn}>↓</button>
+                </span>
+              </div>
+              <div role="radiogroup" aria-label={c.label} className="flex flex-wrap gap-2">
+                {options.map((o, idx) => {
+                  const checked = mapping[c.id] === o.id
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={checked}
+                      tabIndex={idx === tabbable ? 0 : -1}
+                      onKeyDown={e => onKey(e, idx)}
+                      onClick={() => onMap(c.id, o.id)}
+                      className={`rounded-lg px-3 py-2 text-sm transition-colors ${ring} ${checked ? 'bg-accent/20 text-white ring-1 ring-accent/50' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
+                    >
+                      {o.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </li>
+          )
+        })}
       </ol>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-white/50">

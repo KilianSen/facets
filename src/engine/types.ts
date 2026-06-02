@@ -55,6 +55,9 @@ export type Signature = Record<AxisId, Record<DimId, AxisDimCell>>
 export interface Contingency { axis: AxisId; dim: DimId; slope: number; text: string }
 export interface ArchetypeMatch { id: string; confidence: number; runnerUpId?: string }
 
+/** How shaky an axis's slope estimate is (high instability = inconsistent answers). */
+export interface AxisStability { axisId: AxisId; instability: number; coverage: number; n: number }
+
 export interface Profile {
   archetype: ArchetypeMatch
   signature: Signature
@@ -63,6 +66,10 @@ export interface Profile {
   /** context-independent average behavioural level per dim (drives baseline-aware matching) */
   baseline: Record<DimId, number>
   flexibility: number
+  /** per-axis unsettled/instability scores (used on parallel sharpen items only) */
+  axisStability?: Record<AxisId, AxisStability>
+  /** per-axis swing = strongest |slope| on the axis (the big-swing sharpen trigger) */
+  axisSwing?: Record<AxisId, number>
 }
 
 export function isDependsAnswer(a: Answer): a is DependsAnswer {

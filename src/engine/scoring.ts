@@ -2,6 +2,7 @@ import { type Answer, type Content, type Profile, type Contingency } from './typ
 import { extractRules, extractBaseline } from './rules'
 import { computeSignature } from './signature'
 import { matchArchetype } from './match'
+import { axisStability, axisSwing } from './stability'
 
 export function describeContingency(axisId: string, dimId: string, slope: number, content: Content): string {
   const axis = content.axes.find(a => a.id === axisId)
@@ -40,5 +41,9 @@ export function computeProfile(answers: Answer[], content: Content): Profile {
   }
   cells.sort((a, b) => Math.abs(b.slope) - Math.abs(a.slope))
 
-  return { archetype, signature, topContingencies: cells.slice(0, 5), dimensionRanges, baseline, flexibility }
+  return {
+    archetype, signature, topContingencies: cells.slice(0, 5), dimensionRanges, baseline, flexibility,
+    axisStability: axisStability(rules, content),
+    axisSwing: axisSwing(signature, content),
+  }
 }

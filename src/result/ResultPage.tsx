@@ -36,7 +36,7 @@ export function ResultPage({
       </div>
 
       <Reveal delay={0.26} className="flex flex-col items-center gap-4">
-        <ShareBar answers={answers} cardRef={cardRef} />
+        <ShareBar archetypeId={profile.archetype.id} answers={answers} cardRef={cardRef} />
         <button
           type="button"
           onClick={onRestart}

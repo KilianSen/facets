@@ -1,15 +1,15 @@
 import { useState, type RefObject } from 'react'
 import { toPng } from 'html-to-image'
 import type { Answer } from '../engine/types'
-import { encodeAnswers } from './permalink'
+import { shareUrl } from './permalink'
 
 const btn = 'rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
 
-export function ShareBar({ answers, cardRef }: { answers: Answer[]; cardRef: RefObject<HTMLElement | null> }) {
+export function ShareBar({ archetypeId, answers, cardRef }: { archetypeId: string; answers: Answer[]; cardRef: RefObject<HTMLElement | null> }) {
   const [copied, setCopied] = useState(false)
 
   async function copyLink() {
-    const url = `${window.location.origin}${window.location.pathname}#r=${encodeAnswers(answers)}`
+    const url = shareUrl(archetypeId, answers, window.location.origin)
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)

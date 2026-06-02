@@ -30,9 +30,12 @@ function loadResult(): CachedResult | null {
 
 function fromPermalink(): CachedResult | null {
   try {
-    const m = window.location.hash.match(/[#&]r=([^&]+)/)
-    if (!m) return null
-    const answers = decodeAnswers(m[1])
+    // New canonical share param `?a=`; legacy client permalink `#r=` still honored.
+    const a = new URLSearchParams(window.location.search).get('a')
+      ?? window.location.hash.match(/[#&]r=([^&]+)/)?.[1]
+      ?? null
+    if (!a) return null
+    const answers = decodeAnswers(a)
     if (answers && answers.length) return { profile: computeProfile(answers, CONTENT), answers }
   } catch { /* ignore */ }
   return null
@@ -87,7 +90,8 @@ export function App() {
     setProfile(null)
     setAnswers([])
     setQuestions([])
-    try { if (window.location.hash) window.history.replaceState(null, '', window.location.pathname) } catch { /* ignore */ }
+    // Drop any /r/<id>?a= or #r= so a refresh after restart doesn't re-restore the shared result.
+    try { window.history.replaceState(null, '', '/') } catch { /* ignore */ }
     setView('landing')
   }
 

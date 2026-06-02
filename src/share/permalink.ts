@@ -21,3 +21,11 @@ export function decodeAnswers(s: string): Answer[] | null {
     return null
   }
 }
+
+/**
+ * Build a shareable URL: `/r/<archetypeId>?a=<answers>`. The path lets a static host serve the
+ * per-archetype OG page to crawlers; the `a` query lets a human's browser rebuild the exact result.
+ */
+export function shareUrl(archetypeId: string, answers: Answer[], origin = ''): string {
+  return `${origin}/r/${archetypeId}?a=${encodeAnswers(answers)}`
+}

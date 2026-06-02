@@ -10,7 +10,7 @@ import { encodeAnswers } from '../share/permalink'
 import type { Answer } from '../engine/types'
 
 describe('App', () => {
-  beforeEach(() => { localStorage.clear(); window.location.hash = '' })
+  beforeEach(() => { localStorage.clear(); window.history.replaceState(null, '', '/') })
 
   it('shows the landing page with both run modes', () => {
     render(<App />)
@@ -75,6 +75,14 @@ describe('App', () => {
     localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(computeProfile([], CONTENT)))
     const answers: Answer[] = [{ questionId: 'closeness_1', mode: 'single', optionId: 'A' }]
     window.location.hash = `#r=${encodeAnswers(answers)}`
+    render(<App />)
+    expect(screen.getByText('Take it again')).toBeInTheDocument()
+    expect(screen.queryByText('Quick read')).not.toBeInTheDocument()
+  })
+
+  it('restores a result from a /r/<id>?a= share link', () => {
+    const answers: Answer[] = [{ questionId: 'closeness_1', mode: 'single', optionId: 'A' }]
+    window.history.replaceState(null, '', `/r/vault?a=${encodeAnswers(answers)}`)
     render(<App />)
     expect(screen.getByText('Take it again')).toBeInTheDocument()
     expect(screen.queryByText('Quick read')).not.toBeInTheDocument()

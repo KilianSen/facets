@@ -5,7 +5,7 @@
 :root { color-scheme: dark; }
 
 body {
-  @apply bg-ink text-white antialiased;
+  @apply text-white antialiased;
   font-family: 'Satoshi', system-ui, sans-serif;
   /* Atmosphere — layered low-opacity glows so the canvas is never flat black. */
   background-image:

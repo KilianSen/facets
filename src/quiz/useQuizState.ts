@@ -69,6 +69,7 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
       return { ...state, phase: 'ranking', ...freshDraft() }
 
     case 'SET_RANKING':
+      if (state.phase !== 'ranking') return state
       return { ...state, phase: 'mapping', draftRanking: action.ranking }
 
     case 'MAP_CASE': {

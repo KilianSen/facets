@@ -14,7 +14,7 @@ export function DependsRanker({ cases, onConfirm }: { cases: Case[]; onConfirm: 
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-white/70">Drag the most-true to the top.</p>
+      <p className="text-sm text-white/70">Move the most-true to the top.</p>
       <ul className="flex flex-col gap-2">
         {order.map((c, i) => (
           <li key={c.id} className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3">

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App, RESULT_STORAGE_KEY } from './App'
 import { STORAGE_KEY } from '../quiz/useQuizState'
@@ -48,6 +48,25 @@ describe('App', () => {
     await userEvent.click(screen.getByText('Take it again'))
     expect(screen.getByText('Quick read')).toBeInTheDocument()
     expect(localStorage.getItem(RESULT_STORAGE_KEY)).toBeNull()
+  })
+
+  it('completes a full short run, shows the interstitial, then renders the result', async () => {
+    render(<App />)
+    await userEvent.click(screen.getByText('Quick read'))
+    // Drive every question: depends screens have a "Continue" + radiogroups; singles have option buttons.
+    for (let i = 0; i < 35; i++) {
+      if (screen.queryByText(/Reading your signature/) || screen.queryByText('Take it again')) break
+      if (screen.queryByRole('button', { name: 'Continue' })) {
+        for (const g of screen.getAllByRole('radiogroup')) {
+          await userEvent.click(within(g).getAllByRole('radio')[0])
+        }
+        await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
+      } else {
+        await userEvent.click(within(screen.getByRole('group')).getAllByRole('button')[0])
+      }
+    }
+    // The 900ms "reading your signature" beat then lands on the result.
+    expect(await screen.findByText('Take it again', {}, { timeout: 2000 })).toBeInTheDocument()
   })
 
   it('offers to continue an in-progress run and resumes at the saved index', async () => {

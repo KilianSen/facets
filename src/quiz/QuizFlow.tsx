@@ -86,7 +86,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
             onMap={(caseId, optionId) => dispatch({ type: 'MAP_CASE', caseId, optionId })}
             onFillAll={optionId => dispatch({ type: 'FILL_ALL', optionId })}
             canCommit={state.canCommit}
-            onCommit={() => dispatch({ type: 'COMMIT_DEPENDS' })}
+            onCommit={() => { dispatch({ type: 'COMMIT_DEPENDS' }); if (!coachSeen) dismissCoach() }}
           />
           {current.kind === 'flavor' && (
             <button

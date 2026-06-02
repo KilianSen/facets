@@ -16,8 +16,14 @@ const DIMS: BehaviorDim[] = [
 describe('matchBand', () => {
   it('maps confidence to a qualitative band (never a percentage)', () => {
     expect(matchBand(0.8)).toBe('Strong match')
-    expect(matchBand(0.4)).toBe('Solid match')
+    expect(matchBand(0.5)).toBe('Solid match')
     expect(matchBand(0.1)).toBe('Slight lean')
+  })
+  it('never deflates a completed run: the realistic floor (~0.50) is at least a Solid match', () => {
+    // Completed runs answer all axes; confidence clusters ~[0.50, 0.63]. None should read "Slight lean".
+    expect(matchBand(0.50)).toBe('Solid match')
+    expect(matchBand(0.515)).toBe('Solid match')
+    expect(matchBand(0.6)).toBe('Strong match')
   })
 })
 

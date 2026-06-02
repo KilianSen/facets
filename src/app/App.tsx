@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { computeProfile, type Answer, type Profile, type Question } from '../engine'
 import { CONTENT } from '../content'
 import { selectQuestions, type RunMode } from '../content/selectQuestions'
@@ -59,9 +59,15 @@ export function App() {
     try { localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(computed)) } catch { /* ignore */ }
     setProfile(computed)
     // Brief "reading your signature" beat — computeProfile is instant, but the pause rewards the run.
+    // The result is already persisted above, so a refresh during the beat rehydrates to 'result'.
     setView('computing')
-    setTimeout(() => setView('result'), 900)
   }
+
+  useEffect(() => {
+    if (view !== 'computing') return
+    const id = setTimeout(() => setView('result'), 900)
+    return () => clearTimeout(id)
+  }, [view])
 
   function restart() {
     clearStored()
@@ -117,7 +123,7 @@ export function App() {
 
   if (view === 'computing') {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 text-center">
+      <div role="status" className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 text-center">
         <p className="animate-pulse text-sm text-white/60">Reading your signature…</p>
       </div>
     )

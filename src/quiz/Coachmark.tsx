@@ -1,6 +1,6 @@
 export function Coachmark({ onDismiss }: { onDismiss: () => void }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-sky-400/30 bg-sky-400/10 p-3 text-xs text-sky-100">
+    <div role="note" aria-live="polite" className="flex items-start gap-3 rounded-xl border border-sky-400/30 bg-sky-400/10 p-3 text-xs text-sky-100">
       <p className="flex-1 leading-relaxed">New here? Order these by how much each is you, pick what you’d actually do in each, then hit Continue.</p>
       <button
         type="button"

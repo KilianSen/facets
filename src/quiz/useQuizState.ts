@@ -42,7 +42,10 @@ function freshDraft(): Pick<QuizState, 'draftRanking' | 'draftMapping' | 'canCom
 }
 
 function phaseFor(index: number, questions: Question[]): QuizPhase {
-  return index >= questions.length ? 'done' : 'question'
+  if (index >= questions.length) return 'done'
+  // Every production question is conditional → go straight to the rank/map flow.
+  // Case-less questions (none in production) fall back to the single-tap phase.
+  return questions[index].cases ? 'ranking' : 'question'
 }
 
 export function initQuizState(questions: Question[]): QuizState {

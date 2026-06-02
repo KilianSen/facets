@@ -26,6 +26,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
         {state.index + 1} / {questions.length}
       </span>
 
+      {/* Single-tap fallback (only for case-less questions). */}
       {state.phase === 'question' && (
         <QuestionCard
           question={current}
@@ -35,18 +36,24 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
       )}
 
       {state.phase === 'ranking' && current.cases && (
-        <DependsRanker cases={current.cases} onConfirm={ranking => dispatch({ type: 'SET_RANKING', ranking })} />
+        <div className="flex flex-col gap-5">
+          <h2 className="text-lg font-medium text-white">{current.prompt}</h2>
+          <DependsRanker cases={current.cases} onConfirm={ranking => dispatch({ type: 'SET_RANKING', ranking })} />
+        </div>
       )}
 
       {state.phase === 'mapping' && current.cases && (
-        <CaseMapper
-          cases={current.cases}
-          options={current.options}
-          mapping={state.draftMapping}
-          onMap={(caseId, optionId) => dispatch({ type: 'MAP_CASE', caseId, optionId })}
-          canCommit={state.canCommit}
-          onCommit={() => dispatch({ type: 'COMMIT_DEPENDS' })}
-        />
+        <div className="flex flex-col gap-5">
+          <h2 className="text-lg font-medium text-white">{current.prompt}</h2>
+          <CaseMapper
+            cases={current.cases}
+            options={current.options}
+            mapping={state.draftMapping}
+            onMap={(caseId, optionId) => dispatch({ type: 'MAP_CASE', caseId, optionId })}
+            canCommit={state.canCommit}
+            onCommit={() => dispatch({ type: 'COMMIT_DEPENDS' })}
+          />
+        </div>
       )}
     </div>
   )

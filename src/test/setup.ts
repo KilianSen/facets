@@ -1,31 +1,23 @@
 import '@testing-library/jest-dom'
 
-// Expose jsdom's fully-functional localStorage/sessionStorage on the Node global
-// so tests can use localStorage.clear() etc. (Node 22 ships a stub without clear()).
-// vitest's populateGlobal does not include localStorage in its key list, so Node 22's
-// stub is picked up instead of jsdom's implementation. We capture and re-export it here.
-if (typeof globalThis.jsdom !== 'undefined') {
-  // When running in the jsdom environment, vitest sets globalThis.jsdom to the JSDOM instance.
-  const jsdomWindow = (globalThis as any).jsdom.window as Window
-  const jsdomLS = Object.getOwnPropertyDescriptor(jsdomWindow, '_localStorage') !== undefined
-    ? jsdomWindow._localStorage
-    : (Object.getOwnPropertyDescriptor(Object.getPrototypeOf(jsdomWindow), 'localStorage')
-        ?.get?.call(jsdomWindow))
+// Node 22 ships a partial `localStorage` stub (missing `clear()`) that shadows jsdom's
+// implementation on the test global — and it also shadows `window.localStorage`. jsdom's
+// real backing Storage is exposed internally as `_localStorage` on its window, and vitest
+// sets `globalThis.jsdom` to the JSDOM instance. Install that real Storage onto the global
+// so both the tests and the reducer share a working localStorage. (`any` casts are needed
+// because `_localStorage` / `globalThis.jsdom` are jsdom/vitest internals, not typed.)
+const jsdomInstance = (globalThis as { jsdom?: { window?: unknown } }).jsdom
+if (jsdomInstance && jsdomInstance.window) {
+  const w = jsdomInstance.window as any
+  const realStorage = (key: '_localStorage' | '_sessionStorage', prop: 'localStorage' | 'sessionStorage'): Storage | undefined =>
+    w[key] ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(w), prop)?.get?.call(w)
 
-  if (jsdomLS && typeof jsdomLS.clear === 'function') {
-    Object.defineProperty(globalThis, 'localStorage', {
-      value: jsdomLS,
-      writable: true,
-      configurable: true,
-    })
+  const ls = realStorage('_localStorage', 'localStorage')
+  if (ls && typeof ls.clear === 'function') {
+    Object.defineProperty(globalThis, 'localStorage', { value: ls, configurable: true, writable: true })
   }
-  const jsdomSS = (Object.getOwnPropertyDescriptor(Object.getPrototypeOf(jsdomWindow), 'sessionStorage')
-      ?.get?.call(jsdomWindow))
-  if (jsdomSS && typeof jsdomSS.clear === 'function') {
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      value: jsdomSS,
-      writable: true,
-      configurable: true,
-    })
+  const ss = realStorage('_sessionStorage', 'sessionStorage')
+  if (ss && typeof ss.clear === 'function') {
+    Object.defineProperty(globalThis, 'sessionStorage', { value: ss, configurable: true, writable: true })
   }
 }

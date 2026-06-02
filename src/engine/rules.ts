@@ -21,6 +21,7 @@ export function extractRules(answers: Answer[], content: Content): Rule[] {
       const opt = q.options.find(o => o.id === optionId)
       if (!opt) continue
       const rank = a.ranking.indexOf(c.id)
+      // A mapped case missing from `ranking` is treated as least-important (weight 1).
       const weight = rank >= 0 ? rankWeight(rank, total) : 1
       rules.push({ axis: q.axis, axisLevel: c.axisLevel, vector: opt.vector, weight })
     }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { matchArchetype } from './match'
+import { matchArchetype, signatureDistance } from './match'
 import { computeSignature } from './signature'
 import { extractRules } from './rules'
 import { makeTestContent, vaultAnswer, constantAnswer } from './testFixtures'
@@ -35,5 +35,13 @@ describe('matchArchetype', () => {
 
   it('throws when no archetypes are defined', () => {
     expect(() => matchArchetype({}, { ...content, archetypes: [] })).toThrow()
+  })
+
+  it('signatureDistance is ~0 for matching slopes and grows with difference', () => {
+    const { signature } = computeSignature(extractRules([vaultAnswer], content), content)
+    const same = { closeness: { warmth: signature.closeness.warmth.slope, approach: signature.closeness.approach.slope } }
+    expect(signatureDistance(signature, same, content)).toBeCloseTo(0)
+    const far = { closeness: { warmth: signature.closeness.warmth.slope + 5, approach: signature.closeness.approach.slope } }
+    expect(signatureDistance(signature, far, content)).toBeGreaterThan(0)
   })
 })

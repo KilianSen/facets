@@ -32,11 +32,20 @@ export function matchArchetype(sig: Signature, content: Content): ArchetypeMatch
   const best = scored[0]
   const runnerUp = scored[1]
 
-  let confidence = 1
+  // Margin to the runner-up, bounded [0,1].
+  let margin = 1
   if (runnerUp) {
     const denom = best.dist + runnerUp.dist
-    confidence = denom === 0 ? 0.5 : Math.max(0, Math.min(1, (runnerUp.dist - best.dist) / denom + 0.5))
+    margin = denom === 0 ? 0.5 : Math.max(0, Math.min(1, (runnerUp.dist - best.dist) / denom + 0.5))
   }
 
-  return { id: best.id, confidence, runnerUpId: runnerUp?.id }
+  // Evidence gate: a flat signature from a consistent person and a flat signature from
+  // *no answers* look identical, so confidence must depend on actual data, not just distance.
+  // An axis is "covered" when some dim there has >= 2 levels of data (a real slope exists).
+  const axesWithData = content.axes.filter(ax =>
+    content.dims.some(d => (sig[ax.id]?.[d.id]?.levels.length ?? 0) >= 2),
+  ).length
+  const sufficiency = content.axes.length ? axesWithData / content.axes.length : 0
+
+  return { id: best.id, confidence: margin * sufficiency, runnerUpId: runnerUp?.id }
 }

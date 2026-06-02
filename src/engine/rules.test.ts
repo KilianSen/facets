@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { extractRules, rankWeight } from './rules'
 import { makeTestContent, vaultAnswer } from './testFixtures'
+import type { Answer } from './types'
 
 describe('rankWeight', () => {
   it('gives most-true (index 0) the highest weight', () => {
@@ -25,5 +26,17 @@ describe('extractRules', () => {
       makeTestContent(),
     )
     expect(rules).toHaveLength(0)
+  })
+
+  it('skips cases with an unknown mapped option and cases left unmapped', () => {
+    const content = makeTestContent()
+    const a: Answer = {
+      questionId: 'q_close', mode: 'depends',
+      ranking: ['c_best', 'c_mid', 'c_far'],
+      mapping: { c_best: 'NOPE', c_mid: 'B' }, // c_best -> nonexistent option, c_far unmapped
+    }
+    const rules = extractRules([a], content)
+    expect(rules).toHaveLength(1)
+    expect(rules[0].axisLevel).toBe(0.5)
   })
 })

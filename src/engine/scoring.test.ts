@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { computeProfile, describeContingency } from './scoring'
 import { makeTestContent, vaultAnswer } from './testFixtures'
+import type { Answer } from './types'
 
 describe('describeContingency', () => {
   it('reads high-pole behaviour for a positive slope', () => {
@@ -32,9 +33,20 @@ describe('computeProfile', () => {
     expect(computeProfile([vaultAnswer], content)).toEqual(computeProfile([vaultAnswer], content))
   })
 
-  it('handles an empty answer set without throwing', () => {
+  it('gives zero confidence for an empty answer set (no evidence)', () => {
     const p = computeProfile([], content)
     expect(p.flexibility).toBe(0)
+    expect(p.archetype.confidence).toBe(0)
     expect(typeof p.archetype.id).toBe('string')
+  })
+
+  it('surfaces negative-slope contingencies for a reverse pattern', () => {
+    const reverse: Answer = {
+      questionId: 'q_close', mode: 'depends',
+      ranking: ['c_best', 'c_mid', 'c_far'],
+      mapping: { c_best: 'C', c_mid: 'B', c_far: 'A' },
+    }
+    const p = computeProfile([reverse], content)
+    expect(p.topContingencies.some(c => c.slope < 0)).toBe(true)
   })
 })

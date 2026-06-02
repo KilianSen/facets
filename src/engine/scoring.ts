@@ -4,8 +4,9 @@ import { computeSignature } from './signature'
 import { matchArchetype } from './match'
 
 export function describeContingency(axisId: string, dimId: string, slope: number, content: Content): string {
-  const axis = content.axes.find(a => a.id === axisId)!
-  const dim = content.dims.find(d => d.id === dimId)!
+  const axis = content.axes.find(a => a.id === axisId)
+  const dim = content.dims.find(d => d.id === dimId)
+  if (!axis || !dim) throw new Error(`describeContingency: unknown axis "${axisId}" or dim "${dimId}"`)
   const highBehaviour = slope >= 0 ? dim.highLabel : dim.lowLabel
   const lowBehaviour = slope >= 0 ? dim.lowLabel : dim.highLabel
   return `When ${axis.highLabel}, you ${highBehaviour}; when ${axis.lowLabel}, you ${lowBehaviour}.`

@@ -6,9 +6,11 @@ import { STORAGE_KEY } from '../quiz/useQuizState'
 import { computeProfile } from '../engine'
 import { CONTENT } from '../content'
 import { selectQuestions } from '../content/selectQuestions'
+import { encodeAnswers } from '../share/permalink'
+import type { Answer } from '../engine/types'
 
 describe('App', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => { localStorage.clear(); window.location.hash = '' })
 
   it('shows the landing page with both run modes', () => {
     render(<App />)
@@ -67,6 +69,21 @@ describe('App', () => {
     }
     // The 900ms "reading your signature" beat then lands on the result.
     expect(await screen.findByText('Take it again', {}, { timeout: 2000 })).toBeInTheDocument()
+  })
+
+  it('restores a result from a #r= permalink, taking precedence over a cached result', () => {
+    localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(computeProfile([], CONTENT)))
+    const answers: Answer[] = [{ questionId: 'closeness_1', mode: 'single', optionId: 'A' }]
+    window.location.hash = `#r=${encodeAnswers(answers)}`
+    render(<App />)
+    expect(screen.getByText('Take it again')).toBeInTheDocument()
+    expect(screen.queryByText('Quick read')).not.toBeInTheDocument()
+  })
+
+  it('falls back to the landing page on a malformed permalink', () => {
+    window.location.hash = '#r=not~valid~base64'
+    render(<App />)
+    expect(screen.getByText('Quick read')).toBeInTheDocument()
   })
 
   it('offers to continue an in-progress run and resumes at the saved index', async () => {

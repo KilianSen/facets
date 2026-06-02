@@ -20,7 +20,7 @@ export function QuestionCard({
         <button
           type="button"
           onClick={onDepends}
-          className="self-start rounded text-sm text-sky-300 transition-colors hover:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
+          className="self-start rounded text-sm text-accent-soft transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
         >
           ＋ It depends
         </button>

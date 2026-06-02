@@ -30,7 +30,10 @@ export function ShareBar({ answers, cardRef }: { answers: Answer[]; cardRef: Ref
 
   return (
     <div className="flex justify-center gap-2">
-      <button type="button" onClick={copyLink} className={btn}>{copied ? 'Link copied ✓' : 'Copy link'}</button>
+      {/* A permalink needs the answers; a result restored from a legacy cache has none, so hide it. */}
+      {answers.length > 0 && (
+        <button type="button" onClick={copyLink} className={btn}>{copied ? 'Link copied ✓' : 'Copy link'}</button>
+      )}
       <button type="button" onClick={saveImage} className={btn}>Save image</button>
     </div>
   )

@@ -1,7 +1,7 @@
 import type { KeyboardEvent } from 'react'
 import type { Case, Option } from '../engine/types'
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
+const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
 
 export function DependsCard({
   cases, options, ranking, mapping, onReorder, onMap, onFillAll, canCommit, onCommit,
@@ -26,7 +26,7 @@ export function DependsCard({
     onReorder(next)
   }
 
-  const moveBtn = `flex h-9 w-9 items-center justify-center rounded-md text-white/50 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 ${ring}`
+  const moveBtn = `flex h-9 w-9 items-center justify-center rounded-md text-white/50 transition-colors hover:bg-white/10 hover:text-white ${ring}`
 
   return (
     <div className="flex flex-col gap-4">

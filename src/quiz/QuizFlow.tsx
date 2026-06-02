@@ -6,7 +6,7 @@ import { DependsCard } from './DependsCard'
 import { Coachmark } from './Coachmark'
 import { Reveal } from '../ui/Reveal'
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
+const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
 const COACH_KEY = 'fptic.coach.v1'
 
 export function QuizFlow({ questions, onComplete }: { questions: Question[]; onComplete: (answers: Answer[]) => void }) {
@@ -60,7 +60,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
           aria-valuenow={state.index}
           className="h-1 w-full overflow-hidden rounded-full bg-white/10"
         >
-          <div className="h-full rounded-full bg-sky-400 transition-[width] duration-300" style={{ width: `${(state.index / total) * 100}%` }} />
+          <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${(state.index / total) * 100}%` }} />
         </div>
       </div>
 

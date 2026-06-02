@@ -1,4 +1,7 @@
-import { type Content, type Signature, type ArchetypeMatch } from './types'
+import { type Content, type Signature, type ArchetypeMatch, type DimId } from './types'
+
+/** How much the behavioural baseline weighs vs the contingency shape. Slope stays primary. */
+export const BASELINE_WEIGHT = 0.5
 
 /** Euclidean distance between a user signature and a prototype signature over all axis×dim slopes. */
 export function signatureDistance(
@@ -19,13 +22,31 @@ export function signatureDistance(
   return Math.sqrt(sum)
 }
 
-export function matchArchetype(sig: Signature, content: Content): ArchetypeMatch {
+/** Euclidean distance between a user baseline and an archetype baseline over all dims. */
+export function baselineDistance(
+  baseline: Record<DimId, number>,
+  proto: Record<DimId, number> | undefined,
+  content: Content,
+): number {
+  let sum = 0
+  for (const dim of content.dims) {
+    const d = (baseline[dim.id] ?? 0) - (proto?.[dim.id] ?? 0)
+    sum += d * d
+  }
+  return Math.sqrt(sum)
+}
+
+export function matchArchetype(
+  sig: Signature,
+  baseline: Record<DimId, number>,
+  content: Content,
+): ArchetypeMatch {
   if (content.archetypes.length === 0) throw new Error('No archetypes defined in content')
 
   const scored = content.archetypes.map((a, idx) => ({
     id: a.id,
     idx,
-    dist: signatureDistance(sig, a.signature, content),
+    dist: signatureDistance(sig, a.signature, content) + BASELINE_WEIGHT * baselineDistance(baseline, a.baseline, content),
   }))
   scored.sort((a, b) => a.dist - b.dist || a.idx - b.idx) // nearest; tiebreak by catalog order
 

@@ -25,8 +25,10 @@ export interface Archetype {
   name: string
   tagline: string
   copy: string
-  /** expected slope per axis per dim — the prototype shape */
+  /** expected slope per axis per dim — the prototype shape (how behaviour shifts) */
   signature: Record<AxisId, Record<DimId, number>>
+  /** expected average behavioural level per dim (0 / omitted = no lean); used by baseline-aware matching */
+  baseline?: Record<DimId, number>
 }
 
 export interface Content {
@@ -58,6 +60,8 @@ export interface Profile {
   signature: Signature
   topContingencies: Contingency[]
   dimensionRanges: Record<DimId, { min: number; max: number; typical: number }>
+  /** context-independent average behavioural level per dim (drives baseline-aware matching) */
+  baseline: Record<DimId, number>
   flexibility: number
 }
 

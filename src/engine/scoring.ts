@@ -1,5 +1,5 @@
 import { type Answer, type Content, type Profile, type Contingency } from './types'
-import { extractRules } from './rules'
+import { extractRules, extractBaseline } from './rules'
 import { computeSignature } from './signature'
 import { matchArchetype } from './match'
 
@@ -15,7 +15,8 @@ export function describeContingency(axisId: string, dimId: string, slope: number
 export function computeProfile(answers: Answer[], content: Content): Profile {
   const rules = extractRules(answers, content)
   const { signature, flexibility } = computeSignature(rules, content)
-  const archetype = matchArchetype(signature, content)
+  const baseline = extractBaseline(answers, content)
+  const archetype = matchArchetype(signature, baseline, content)
 
   const dimensionRanges: Profile['dimensionRanges'] = {}
   for (const dim of content.dims) {
@@ -39,5 +40,5 @@ export function computeProfile(answers: Answer[], content: Content): Profile {
   }
   cells.sort((a, b) => Math.abs(b.slope) - Math.abs(a.slope))
 
-  return { archetype, signature, topContingencies: cells.slice(0, 5), dimensionRanges, flexibility }
+  return { archetype, signature, topContingencies: cells.slice(0, 5), dimensionRanges, baseline, flexibility }
 }

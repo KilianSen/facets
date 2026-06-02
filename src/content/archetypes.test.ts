@@ -36,9 +36,9 @@ describe('ARCHETYPES', () => {
     expect(constant.signature).toEqual({})
   })
 
-  it('is separable: every archetype self-matches its own prototype signature', () => {
+  it('is separable: every archetype self-matches its own prototype signature + baseline', () => {
     for (const a of ARCHETYPES) {
-      const match = matchArchetype(signatureFromProto(a.signature), content)
+      const match = matchArchetype(signatureFromProto(a.signature), a.baseline ?? {}, content)
       expect(match.id, `${a.code} should self-match`).toBe(a.id)
     }
   })

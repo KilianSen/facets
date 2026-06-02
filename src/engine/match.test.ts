@@ -10,7 +10,7 @@ describe('matchArchetype', () => {
 
   it('matches a vault-shaped signature to the vault archetype', () => {
     const { signature } = computeSignature(extractRules([vaultAnswer], content), content)
-    const match = matchArchetype(signature, content)
+    const match = matchArchetype(signature, {}, content)
     expect(match.id).toBe('vault')
     expect(match.runnerUpId).toBe('constant')
     expect(match.confidence).toBeGreaterThan(0.5)
@@ -18,7 +18,7 @@ describe('matchArchetype', () => {
 
   it('matches a flat signature to the constant archetype', () => {
     const { signature } = computeSignature(extractRules([constantAnswer], content), content)
-    expect(matchArchetype(signature, content).id).toBe('constant')
+    expect(matchArchetype(signature, {}, content).id).toBe('constant')
   })
 
   it('breaks ties deterministically by catalog order', () => {
@@ -30,11 +30,11 @@ describe('matchArchetype', () => {
       ],
     }
     const flat: Signature = { closeness: { warmth: { slope: 0, levels: [] }, approach: { slope: 0, levels: [] } } }
-    expect(matchArchetype(flat, tied).id).toBe('first')
+    expect(matchArchetype(flat, {}, tied).id).toBe('first')
   })
 
   it('throws when no archetypes are defined', () => {
-    expect(() => matchArchetype({}, { ...content, archetypes: [] })).toThrow()
+    expect(() => matchArchetype({}, {}, { ...content, archetypes: [] })).toThrow()
   })
 
   it('signatureDistance is ~0 for matching slopes and grows with difference', () => {

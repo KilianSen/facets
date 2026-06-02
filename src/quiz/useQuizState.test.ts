@@ -2,18 +2,23 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { quizReducer, initQuizState, STORAGE_KEY, type QuizState } from './useQuizState'
 import type { Question } from '../engine/types'
 
-const cased: Question = {
+const backbone: Question = {
   id: 'q1', prompt: 'p1', kind: 'backbone', axis: 'closeness',
   cases: [{ id: 'a', label: 'A', axisLevel: 1 }, { id: 'b', label: 'B', axisLevel: 0 }],
   options: [{ id: 'X', label: 'x', vector: {} }, { id: 'Y', label: 'y', vector: {} }],
 }
-const plain: Question = { id: 'q2', prompt: 'p2', kind: 'flavor', options: [{ id: 'Z', label: 'z', vector: {} }] }
-const questions = [cased, plain]
+// Production flavor questions still carry cases (for the optional "+ It depends").
+const flavor: Question = {
+  id: 'q2', prompt: 'p2', kind: 'flavor', axis: 'stakes',
+  cases: [{ id: 'c', label: 'C', axisLevel: 1 }, { id: 'd', label: 'D', axisLevel: 0 }],
+  options: [{ id: 'Z', label: 'z', vector: {} }, { id: 'W', label: 'w', vector: {} }],
+}
+const questions = [backbone, flavor]
 
-function commitDepends(s: QuizState): QuizState {
-  s = quizReducer(s, { type: 'SET_RANKING', ranking: ['b', 'a'] }, questions)
-  s = quizReducer(s, { type: 'MAP_CASE', caseId: 'b', optionId: 'Y' }, questions)
+function commitBackbone(s: QuizState): QuizState {
+  s = quizReducer(s, { type: 'SET_RANK_ORDER', ranking: ['b', 'a'] }, questions)
   s = quizReducer(s, { type: 'MAP_CASE', caseId: 'a', optionId: 'X' }, questions)
+  s = quizReducer(s, { type: 'MAP_CASE', caseId: 'b', optionId: 'Y' }, questions)
   return quizReducer(s, { type: 'COMMIT_DEPENDS' }, questions)
 }
 
@@ -21,49 +26,74 @@ describe('quizReducer', () => {
   let s: QuizState
   beforeEach(() => { localStorage.clear(); s = initQuizState(questions) })
 
-  it('enters the ranking phase directly for a conditional question', () => {
+  it('a backbone question enters the folded depends phase with the default case order', () => {
     expect(s.index).toBe(0)
-    expect(s.phase).toBe('ranking')
+    expect(s.phase).toBe('depends')
+    expect(s.draftRanking).toEqual(['a', 'b'])
   })
 
-  it('runs the depends flow: rank → map all cases → commit advances', () => {
-    s = quizReducer(s, { type: 'SET_RANKING', ranking: ['b', 'a'] }, questions)
-    expect(s.phase).toBe('mapping')
-    s = quizReducer(s, { type: 'MAP_CASE', caseId: 'b', optionId: 'Y' }, questions)
+  it('depends flow: reorder + map all cases + commit advances to the next question', () => {
+    s = quizReducer(s, { type: 'SET_RANK_ORDER', ranking: ['b', 'a'] }, questions)
+    expect(s.phase).toBe('depends') // no separate ranking screen — still folded
     s = quizReducer(s, { type: 'MAP_CASE', caseId: 'a', optionId: 'X' }, questions)
+    s = quizReducer(s, { type: 'MAP_CASE', caseId: 'b', optionId: 'Y' }, questions)
     expect(s.canCommit).toBe(true)
     s = quizReducer(s, { type: 'COMMIT_DEPENDS' }, questions)
-    expect(s.answers[0]).toEqual({ questionId: 'q1', mode: 'depends', ranking: ['b', 'a'], mapping: { b: 'Y', a: 'X' } })
+    expect(s.answers[0]).toEqual({ questionId: 'q1', mode: 'depends', ranking: ['b', 'a'], mapping: { a: 'X', b: 'Y' } })
     expect(s.index).toBe(1)
-    expect(s.phase).toBe('question') // q2 is case-less → single-tap fallback
+    expect(s.phase).toBe('single') // q2 is flavor → single-tap
   })
 
-  it('cannot commit until all cases are mapped', () => {
-    s = quizReducer(s, { type: 'SET_RANKING', ranking: ['a', 'b'] }, questions)
+  it('cannot commit until every case is mapped', () => {
     s = quizReducer(s, { type: 'MAP_CASE', caseId: 'a', optionId: 'X' }, questions)
     expect(s.canCommit).toBe(false)
   })
 
-  it('records a single answer for a case-less question and advances', () => {
-    s = commitDepends(s) // finish q1 → now at q2 (case-less, 'question')
-    expect(s.phase).toBe('question')
+  it('FILL_ALL assigns one response to every case', () => {
+    s = quizReducer(s, { type: 'FILL_ALL', optionId: 'X' }, questions)
+    expect(s.draftMapping).toEqual({ a: 'X', b: 'X' })
+    expect(s.canCommit).toBe(true)
+  })
+
+  it('a flavor question is single-tap and records a single answer', () => {
+    s = commitBackbone(s)
+    expect(s.phase).toBe('single')
     s = quizReducer(s, { type: 'ANSWER_SINGLE', optionId: 'Z' }, questions)
     expect(s.answers[1]).toEqual({ questionId: 'q2', mode: 'single', optionId: 'Z' })
     expect(s.index).toBe(2)
-  })
-
-  it('reaches done phase after the last question', () => {
-    s = commitDepends(s)
-    s = quizReducer(s, { type: 'ANSWER_SINGLE', optionId: 'Z' }, questions)
     expect(s.phase).toBe('done')
   })
 
-  it('persists answers to localStorage and reloads them', () => {
-    s = commitDepends(s)
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).answers).toHaveLength(1)
+  it('START_DEPENDS promotes a flavor question to the folded depends phase', () => {
+    s = commitBackbone(s)
+    s = quizReducer(s, { type: 'START_DEPENDS' }, questions)
+    expect(s.phase).toBe('depends')
+    expect(s.draftRanking).toEqual(['c', 'd'])
+  })
+
+  it('GO_BACK restores a prior depends answer for editing', () => {
+    s = commitBackbone(s) // now at q2
+    s = quizReducer(s, { type: 'GO_BACK' }, questions)
+    expect(s.index).toBe(0)
+    expect(s.phase).toBe('depends')
+    expect(s.draftRanking).toEqual(['b', 'a'])
+    expect(s.draftMapping).toEqual({ a: 'X', b: 'Y' })
+    expect(s.canCommit).toBe(true)
+  })
+
+  it('GO_BACK at the first question is a no-op', () => {
+    s = quizReducer(s, { type: 'GO_BACK' }, questions)
+    expect(s.index).toBe(0)
+  })
+
+  it('persists answers + index + questionIds and resumes at the saved index', () => {
+    s = commitBackbone(s)
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    expect(stored.answers).toHaveLength(1)
+    expect(stored.index).toBe(1)
+    expect(stored.questionIds).toEqual(['q1', 'q2'])
     const reloaded = initQuizState(questions)
-    expect(reloaded.answers).toHaveLength(1)
     expect(reloaded.index).toBe(1)
-    expect(reloaded.phase).toBe('question') // resumes at q2 (case-less)
+    expect(reloaded.phase).toBe('single')
   })
 })

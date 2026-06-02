@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QuizFlow } from './QuizFlow'
 import type { Question } from '../engine/types'
@@ -7,32 +7,43 @@ import type { Question } from '../engine/types'
 describe('QuizFlow', () => {
   beforeEach(() => localStorage.clear())
 
-  it('single-tap fallback: a case-less question records a single answer and completes', async () => {
+  it('flavor question is single-tap and completes on one click', async () => {
     const onComplete = vi.fn()
     const questions: Question[] = [
-      { id: 'q1', prompt: 'First question?', kind: 'flavor', options: [{ id: 'X', label: 'Pick X', vector: {} }] },
+      { id: 'q1', prompt: 'First?', kind: 'flavor', options: [{ id: 'X', label: 'Pick X', vector: {} }] },
     ]
     render(<QuizFlow questions={questions} onComplete={onComplete} />)
     await userEvent.click(screen.getByText('Pick X'))
     expect(onComplete).toHaveBeenCalledWith([{ questionId: 'q1', mode: 'single', optionId: 'X' }])
   })
 
-  it('conditional question goes straight to rank → map → result', async () => {
+  it('backbone question shows the folded depends card and commits a depends answer', async () => {
     const onComplete = vi.fn()
-    const withCases: Question[] = [{
+    const questions: Question[] = [{
       id: 'q1', prompt: 'Depends?', kind: 'backbone', axis: 'closeness',
       cases: [{ id: 'a', label: 'Case A', axisLevel: 1 }, { id: 'b', label: 'Case B', axisLevel: 0 }],
       options: [{ id: 'X', label: 'Resp X', vector: {} }, { id: 'Y', label: 'Resp Y', vector: {} }],
     }]
-    render(<QuizFlow questions={withCases} onComplete={onComplete} />)
-    // No "It depends" step — the ranker shows immediately with the prompt.
+    render(<QuizFlow questions={questions} onComplete={onComplete} />)
     expect(screen.getByText('Depends?')).toBeInTheDocument()
-    await userEvent.click(screen.getByText('Next')) // confirm default ranking
-    await userEvent.click(screen.getAllByText('Resp X')[0]) // map case A
-    await userEvent.click(screen.getAllByText('Resp Y')[1]) // map case B
+    await userEvent.click(within(screen.getByRole('radiogroup', { name: 'Case A' })).getByText('Resp X'))
+    await userEvent.click(within(screen.getByRole('radiogroup', { name: 'Case B' })).getByText('Resp Y'))
     await userEvent.click(screen.getByText('Continue'))
     expect(onComplete).toHaveBeenCalledTimes(1)
     expect(onComplete.mock.calls[0][0][0].mode).toBe('depends')
+  })
+
+  it('Back returns to the previous question', async () => {
+    const onComplete = vi.fn()
+    const questions: Question[] = [
+      { id: 'q1', prompt: 'First?', kind: 'flavor', options: [{ id: 'X', label: 'Pick X', vector: {} }] },
+      { id: 'q2', prompt: 'Second?', kind: 'flavor', options: [{ id: 'Z', label: 'Pick Z', vector: {} }] },
+    ]
+    render(<QuizFlow questions={questions} onComplete={onComplete} />)
+    await userEvent.click(screen.getByText('Pick X')) // → q2
+    expect(screen.getByText('Second?')).toBeInTheDocument()
+    await userEvent.click(screen.getByText(/Back/))
+    expect(screen.getByText('First?')).toBeInTheDocument()
   })
 
   it('shows progress as a labelled progressbar', () => {

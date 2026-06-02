@@ -3,7 +3,7 @@ import type { Answer, Question } from '../engine/types'
 
 export const STORAGE_KEY = 'fptic.quiz.v1'
 
-export type QuizPhase = 'question' | 'ranking' | 'mapping' | 'done'
+export type QuizPhase = 'single' | 'depends' | 'done'
 
 export interface QuizState {
   index: number
@@ -17,47 +17,66 @@ export interface QuizState {
 export type QuizAction =
   | { type: 'ANSWER_SINGLE'; optionId: string }
   | { type: 'START_DEPENDS' }
-  | { type: 'SET_RANKING'; ranking: string[] }
+  | { type: 'SET_RANK_ORDER'; ranking: string[] }
   | { type: 'MAP_CASE'; caseId: string; optionId: string }
+  | { type: 'FILL_ALL'; optionId: string }
   | { type: 'COMMIT_DEPENDS' }
+  | { type: 'GO_BACK' }
   | { type: 'RESET' }
 
-function persist(answers: Answer[], index: number): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers, index })) } catch { /* ignore */ }
+export interface StoredProgress { answers: Answer[]; index: number; questionIds: string[] }
+
+function persist(answers: Answer[], index: number, questions: Question[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers, index, questionIds: questions.map(q => q.id) }))
+  } catch { /* ignore */ }
 }
 
-function load(): { answers: Answer[]; index: number } {
+/** Read an in-progress run from storage (used by App to offer "Continue"). */
+export function loadProgress(): StoredProgress | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed.answers)) return { answers: parsed.answers, index: parsed.index ?? parsed.answers.length }
+    if (!raw) return null
+    const p = JSON.parse(raw)
+    if (Array.isArray(p.answers) && Array.isArray(p.questionIds)) {
+      return { answers: p.answers, index: p.index ?? p.answers.length, questionIds: p.questionIds }
     }
   } catch { /* ignore */ }
-  return { answers: [], index: 0 }
+  return null
 }
 
-function freshDraft(): Pick<QuizState, 'draftRanking' | 'draftMapping' | 'canCommit'> {
-  return { draftRanking: [], draftMapping: {}, canCommit: false }
-}
+const EMPTY_DRAFT = { draftRanking: [] as string[], draftMapping: {} as Record<string, string>, canCommit: false }
 
 function phaseFor(index: number, questions: Question[]): QuizPhase {
   if (index >= questions.length) return 'done'
-  // Every production question is conditional → go straight to the rank/map flow.
-  // Case-less questions (none in production) fall back to the single-tap phase.
-  return questions[index].cases ? 'ranking' : 'question'
+  return questions[index].kind === 'backbone' ? 'depends' : 'single'
+}
+
+/** Fresh state for landing on `index` (default case order when it's a depends question). */
+function landOn(index: number, questions: Question[]): Pick<QuizState, 'index' | 'phase' | 'draftRanking' | 'draftMapping' | 'canCommit'> {
+  const phase = phaseFor(index, questions)
+  const q = questions[index]
+  if (phase === 'depends' && q?.cases) {
+    return { index, phase, draftRanking: q.cases.map(c => c.id), draftMapping: {}, canCommit: false }
+  }
+  return { index, phase, ...EMPTY_DRAFT }
+}
+
+function load(): { answers: Answer[]; index: number } {
+  const p = loadProgress()
+  return p ? { answers: p.answers, index: p.index } : { answers: [], index: 0 }
 }
 
 export function initQuizState(questions: Question[]): QuizState {
   const { answers, index } = load()
-  return { index, phase: phaseFor(index, questions), answers, ...freshDraft() }
+  return { answers, ...landOn(index, questions) }
 }
 
 function advance(state: QuizState, answer: Answer, questions: Question[]): QuizState {
   const answers = [...state.answers.filter(a => a.questionId !== answer.questionId), answer]
   const index = state.index + 1
-  persist(answers, index)
-  return { ...state, answers, index, phase: phaseFor(index, questions), ...freshDraft() }
+  persist(answers, index, questions)
+  return { ...state, answers, ...landOn(index, questions) }
 }
 
 export function quizReducer(state: QuizState, action: QuizAction, questions: Question[]): QuizState {
@@ -69,17 +88,24 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
 
     case 'START_DEPENDS':
       if (!current?.cases) return state
-      return { ...state, phase: 'ranking', ...freshDraft() }
+      return { ...state, phase: 'depends', draftRanking: current.cases.map(c => c.id), draftMapping: {}, canCommit: false }
 
-    case 'SET_RANKING':
-      if (state.phase !== 'ranking') return state
-      return { ...state, phase: 'mapping', draftRanking: action.ranking }
+    case 'SET_RANK_ORDER':
+      if (state.phase !== 'depends') return state
+      return { ...state, draftRanking: action.ranking }
 
     case 'MAP_CASE': {
       if (!current?.cases) return state
       const draftMapping = { ...state.draftMapping, [action.caseId]: action.optionId }
       const canCommit = current.cases.every(c => draftMapping[c.id] !== undefined)
       return { ...state, draftMapping, canCommit }
+    }
+
+    case 'FILL_ALL': {
+      if (!current?.cases) return state
+      const draftMapping: Record<string, string> = {}
+      for (const c of current.cases) draftMapping[c.id] = action.optionId
+      return { ...state, draftMapping, canCommit: true }
     }
 
     case 'COMMIT_DEPENDS': {
@@ -90,9 +116,22 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
       }, questions)
     }
 
+    case 'GO_BACK': {
+      if (state.index === 0) return state
+      const index = state.index - 1
+      const prev = questions[index]
+      const prior = state.answers.find(a => a.questionId === prev.id)
+      persist(state.answers, index, questions)
+      if (prior && prior.mode === 'depends') {
+        const canCommit = prev.cases ? prev.cases.every(c => prior.mapping[c.id] !== undefined) : false
+        return { ...state, index, phase: 'depends', draftRanking: prior.ranking, draftMapping: prior.mapping, canCommit }
+      }
+      return { ...state, ...landOn(index, questions) }
+    }
+
     case 'RESET':
-      persist([], 0)
-      return { index: 0, phase: phaseFor(0, questions), answers: [], ...freshDraft() }
+      persist([], 0, questions)
+      return { ...state, answers: [], ...landOn(0, questions) }
 
     default:
       return state

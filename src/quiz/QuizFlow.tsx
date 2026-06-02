@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react'
 import type { Answer, Question } from '../engine/types'
 import { useQuizState } from './useQuizState'
 import { QuestionCard } from './QuestionCard'
-import { DependsRanker } from './DependsRanker'
-import { CaseMapper } from './CaseMapper'
+import { DependsCard } from './DependsCard'
+
+const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950'
 
 export function QuizFlow({ questions, onComplete }: { questions: Question[]; onComplete: (answers: Answer[]) => void }) {
   const { state, dispatch } = useQuizState(questions)
@@ -17,24 +18,28 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
     }
   }, [state.phase, state.answers, onComplete])
 
-  // Move focus to the prompt when a new question begins, so keyboard / screen-reader
-  // users land on the new question instead of being stranded.
-  useEffect(() => {
-    headingRef.current?.focus()
-  }, [state.index])
+  // Move focus to the prompt when the question changes (keyboard / screen-reader orientation).
+  useEffect(() => { headingRef.current?.focus() }, [state.index])
 
   if (state.phase === 'done') return null
   const current = questions[state.index]
   if (!current) return null
-
   const total = questions.length
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 px-5 py-10">
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium tabular-nums text-white/50">
-          Question {state.index + 1} of {total}
-        </span>
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => dispatch({ type: 'GO_BACK' })}
+            disabled={state.index === 0}
+            className={`rounded text-xs text-white/50 transition-colors enabled:hover:text-white disabled:opacity-0 ${ring}`}
+          >
+            ← Back
+          </button>
+          <span className="text-xs font-medium tabular-nums text-white/50">Question {state.index + 1} of {total}</span>
+        </div>
         <div
           role="progressbar"
           aria-label="Quiz progress"
@@ -43,37 +48,30 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
           aria-valuenow={state.index}
           className="h-1 w-full overflow-hidden rounded-full bg-white/10"
         >
-          <div
-            className="h-full rounded-full bg-sky-400 transition-[width] duration-300"
-            style={{ width: `${(state.index / total) * 100}%` }}
-          />
+          <div className="h-full rounded-full bg-sky-400 transition-[width] duration-300" style={{ width: `${(state.index / total) * 100}%` }} />
         </div>
       </div>
 
-      {/* Single-tap fallback (only for case-less questions; none in production today). */}
-      {state.phase === 'question' && (
+      {state.phase === 'single' && (
         <QuestionCard
           question={current}
+          headingRef={headingRef}
           onSingle={optionId => dispatch({ type: 'ANSWER_SINGLE', optionId })}
           onDepends={() => dispatch({ type: 'START_DEPENDS' })}
         />
       )}
 
-      {state.phase === 'ranking' && current.cases && (
+      {state.phase === 'depends' && current.cases && (
         <div className="flex flex-col gap-5">
           <h2 ref={headingRef} tabIndex={-1} className="text-lg font-medium text-white focus-visible:outline-none">{current.prompt}</h2>
-          <DependsRanker cases={current.cases} onConfirm={ranking => dispatch({ type: 'SET_RANKING', ranking })} />
-        </div>
-      )}
-
-      {state.phase === 'mapping' && current.cases && (
-        <div className="flex flex-col gap-5">
-          <h2 ref={headingRef} tabIndex={-1} className="text-lg font-medium text-white focus-visible:outline-none">{current.prompt}</h2>
-          <CaseMapper
+          <DependsCard
             cases={current.cases}
             options={current.options}
+            ranking={state.draftRanking}
             mapping={state.draftMapping}
+            onReorder={ranking => dispatch({ type: 'SET_RANK_ORDER', ranking })}
             onMap={(caseId, optionId) => dispatch({ type: 'MAP_CASE', caseId, optionId })}
+            onFillAll={optionId => dispatch({ type: 'FILL_ALL', optionId })}
             canCommit={state.canCommit}
             onCommit={() => dispatch({ type: 'COMMIT_DEPENDS' })}
           />

@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App, RESULT_STORAGE_KEY } from './App'
+import { STORAGE_KEY } from '../quiz/useQuizState'
 import { computeProfile } from '../engine'
 import { CONTENT } from '../content'
+import { selectQuestions } from '../content/selectQuestions'
 
 describe('App', () => {
   beforeEach(() => localStorage.clear())
@@ -46,5 +48,14 @@ describe('App', () => {
     await userEvent.click(screen.getByText('Take it again'))
     expect(screen.getByText('Quick read')).toBeInTheDocument()
     expect(localStorage.getItem(RESULT_STORAGE_KEY)).toBeNull()
+  })
+
+  it('offers to continue an in-progress run and resumes at the saved index', async () => {
+    const ids = selectQuestions(CONTENT, 'short').map(q => q.id)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers: [], index: 3, questionIds: ids }))
+    render(<App />)
+    expect(screen.getByText(/Continue your run \(3\/24\)/)).toBeInTheDocument()
+    await userEvent.click(screen.getByText(/Continue your run/))
+    expect(screen.getByText('Question 4 of 24')).toBeInTheDocument()
   })
 })

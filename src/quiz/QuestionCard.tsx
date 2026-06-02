@@ -1,17 +1,19 @@
+import type { RefObject } from 'react'
 import type { Question } from '../engine/types'
 import { OptionList } from './OptionList'
 
 export function QuestionCard({
-  question, onSingle, onDepends,
+  question, headingRef, onSingle, onDepends,
 }: {
   question: Question
+  headingRef?: RefObject<HTMLHeadingElement>
   onSingle: (optionId: string) => void
   onDepends: () => void
 }) {
   const promptId = `prompt-${question.id}`
   return (
     <div className="flex flex-col gap-5">
-      <h2 id={promptId} className="text-lg font-medium text-white">{question.prompt}</h2>
+      <h2 id={promptId} ref={headingRef} tabIndex={-1} className="text-lg font-medium text-white focus-visible:outline-none">{question.prompt}</h2>
       <OptionList options={question.options} labelledById={promptId} onSelect={onSingle} />
       {question.cases && (
         <button

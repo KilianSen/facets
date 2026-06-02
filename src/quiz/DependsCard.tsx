@@ -40,8 +40,8 @@ export function DependsCard({
                 {c.label}
               </span>
               <span className="flex gap-1">
-                <button type="button" aria-label={`move ${c.label} up`} disabled={i === 0} onClick={() => move(i, -1)} className={moveBtn}>↑</button>
-                <button type="button" aria-label={`move ${c.label} down`} disabled={i === ordered.length - 1} onClick={() => move(i, 1)} className={moveBtn}>↓</button>
+                <button type="button" aria-label={`move ${c.label} up`} onClick={() => move(i, -1)} className={moveBtn}>↑</button>
+                <button type="button" aria-label={`move ${c.label} down`} onClick={() => move(i, 1)} className={moveBtn}>↓</button>
               </span>
             </div>
             <div role="radiogroup" aria-label={c.label} className="flex flex-wrap gap-2">

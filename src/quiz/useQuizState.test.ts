@@ -86,6 +86,23 @@ describe('quizReducer', () => {
     expect(s.index).toBe(0)
   })
 
+  it('GO_BACK to a single (flavor) answer preselects the prior option', () => {
+    s = commitBackbone(s) // at q2 (flavor, single)
+    s = quizReducer(s, { type: 'ANSWER_SINGLE', optionId: 'Z' }, questions) // done
+    s = quizReducer(s, { type: 'GO_BACK' }, questions)
+    expect(s.index).toBe(1)
+    expect(s.phase).toBe('single')
+    expect(s.selectedOptionId).toBe('Z')
+  })
+
+  it('CANCEL_DEPENDS returns a promoted flavor question to single-tap', () => {
+    s = commitBackbone(s) // at q2 (flavor, single)
+    s = quizReducer(s, { type: 'START_DEPENDS' }, questions)
+    expect(s.phase).toBe('depends')
+    s = quizReducer(s, { type: 'CANCEL_DEPENDS' }, questions)
+    expect(s.phase).toBe('single')
+  })
+
   it('persists answers + index + questionIds and resumes at the saved index', () => {
     s = commitBackbone(s)
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)

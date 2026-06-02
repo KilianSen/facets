@@ -12,17 +12,19 @@ export interface QuizState {
   draftRanking: string[]
   draftMapping: Record<string, string>
   canCommit: boolean
+  /** prior single-tap choice to preselect when returning to a flavor question via Back */
+  selectedOptionId?: string
 }
 
 export type QuizAction =
   | { type: 'ANSWER_SINGLE'; optionId: string }
   | { type: 'START_DEPENDS' }
+  | { type: 'CANCEL_DEPENDS' }
   | { type: 'SET_RANK_ORDER'; ranking: string[] }
   | { type: 'MAP_CASE'; caseId: string; optionId: string }
   | { type: 'FILL_ALL'; optionId: string }
   | { type: 'COMMIT_DEPENDS' }
   | { type: 'GO_BACK' }
-  | { type: 'RESET' }
 
 export interface StoredProgress { answers: Answer[]; index: number; questionIds: string[] }
 
@@ -53,13 +55,13 @@ function phaseFor(index: number, questions: Question[]): QuizPhase {
 }
 
 /** Fresh state for landing on `index` (default case order when it's a depends question). */
-function landOn(index: number, questions: Question[]): Pick<QuizState, 'index' | 'phase' | 'draftRanking' | 'draftMapping' | 'canCommit'> {
+function landOn(index: number, questions: Question[]): Pick<QuizState, 'index' | 'phase' | 'draftRanking' | 'draftMapping' | 'canCommit' | 'selectedOptionId'> {
   const phase = phaseFor(index, questions)
   const q = questions[index]
   if (phase === 'depends' && q?.cases) {
-    return { index, phase, draftRanking: q.cases.map(c => c.id), draftMapping: {}, canCommit: false }
+    return { index, phase, draftRanking: q.cases.map(c => c.id), draftMapping: {}, canCommit: false, selectedOptionId: undefined }
   }
-  return { index, phase, ...EMPTY_DRAFT }
+  return { index, phase, ...EMPTY_DRAFT, selectedOptionId: undefined }
 }
 
 function load(): { answers: Answer[]; index: number } {
@@ -88,7 +90,12 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
 
     case 'START_DEPENDS':
       if (!current?.cases) return state
-      return { ...state, phase: 'depends', draftRanking: current.cases.map(c => c.id), draftMapping: {}, canCommit: false }
+      return { ...state, phase: 'depends', draftRanking: current.cases.map(c => c.id), draftMapping: {}, canCommit: false, selectedOptionId: undefined }
+
+    case 'CANCEL_DEPENDS':
+      // Only a promoted flavor question can collapse back to single-tap; backbone stays depends.
+      if (current?.kind !== 'flavor') return state
+      return { ...state, phase: 'single', ...EMPTY_DRAFT, selectedOptionId: undefined }
 
     case 'SET_RANK_ORDER':
       if (state.phase !== 'depends') return state
@@ -124,14 +131,10 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
       persist(state.answers, index, questions)
       if (prior && prior.mode === 'depends') {
         const canCommit = prev.cases ? prev.cases.every(c => prior.mapping[c.id] !== undefined) : false
-        return { ...state, index, phase: 'depends', draftRanking: prior.ranking, draftMapping: prior.mapping, canCommit }
+        return { ...state, index, phase: 'depends', draftRanking: prior.ranking, draftMapping: prior.mapping, canCommit, selectedOptionId: undefined }
       }
-      return { ...state, ...landOn(index, questions) }
+      return { ...state, ...landOn(index, questions), selectedOptionId: prior && prior.mode === 'single' ? prior.optionId : undefined }
     }
-
-    case 'RESET':
-      persist([], 0, questions)
-      return { ...state, answers: [], ...landOn(0, questions) }
 
     default:
       return state

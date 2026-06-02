@@ -1,7 +1,12 @@
 import { type Content, type Signature, type ArchetypeMatch, type DimId } from './types'
 
-/** How much the behavioural baseline weighs vs the contingency shape. Slope stays primary. */
-export const BASELINE_WEIGHT = 0.5
+/**
+ * How much the behavioural baseline weighs vs the contingency shape. Kept low so the
+ * contingency *slope* stays the primary signal: user baselines span ~±2 per dim and slope
+ * gaps between archetypes are ~3, so at this weight the baseline term tiebreaks / nudges
+ * borderline matches without overriding a clear slope match.
+ */
+export const BASELINE_WEIGHT = 0.25
 
 /** Euclidean distance between a user signature and a prototype signature over all axis×dim slopes. */
 export function signatureDistance(

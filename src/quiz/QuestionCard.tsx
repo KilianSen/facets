@@ -3,10 +3,11 @@ import type { Question } from '../engine/types'
 import { OptionList } from './OptionList'
 
 export function QuestionCard({
-  question, headingRef, onSingle, onDepends,
+  question, headingRef, selectedId, onSingle, onDepends,
 }: {
   question: Question
   headingRef?: RefObject<HTMLHeadingElement>
+  selectedId?: string
   onSingle: (optionId: string) => void
   onDepends: () => void
 }) {
@@ -14,7 +15,7 @@ export function QuestionCard({
   return (
     <div className="flex flex-col gap-5">
       <h2 id={promptId} ref={headingRef} tabIndex={-1} className="text-lg font-medium text-white focus-visible:outline-none">{question.prompt}</h2>
-      <OptionList options={question.options} labelledById={promptId} onSelect={onSingle} />
+      <OptionList options={question.options} labelledById={promptId} selectedId={selectedId} onSelect={onSingle} />
       {question.cases && (
         <button
           type="button"

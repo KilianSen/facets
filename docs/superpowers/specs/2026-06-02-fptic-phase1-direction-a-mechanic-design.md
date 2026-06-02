@@ -71,6 +71,38 @@ score nothing (`extractRules` skips them); matching is slope-only.
   workflow (scoring correctness, separation/reachability really hold, folded-screen UX,
   regression) before the phase checkpoint.
 
+## Post-implementation adversarial review — fixes applied
+
+A 4-lens review caught a real high-severity regression and several smaller issues:
+
+- **Unreachable archetypes (HIGH, fixed).** Routing flavor → slope-free single-tap meant only the
+  2 backbone questions/axis carry slope, and they didn't cover every archetype's prototype dims
+  with sign freedom: NURTUR (stakes warmth/approach absent) and PEACE (closeness_2 sign-locked
+  directness+composure) fell through to `constant`. The `reachability.test` masked this because it
+  still answered flavor as `depends`. **Fix:** corrected `inCharacterAnswers` to model the real run
+  (backbone → depends, flavor → single aligned to baseline) — this is now the true reachability
+  gate — and re-authored backbone option vectors for **disjoint dim coverage per axis**
+  (closeness_2 = directness/composure opposite-sign; stakes_1 = composure/lead/boldness; stakes_2 =
+  warmth/approach/directness). All 20 reachable; separation intact.
+- **Baseline weight too strong (MEDIUM, fixed).** User baselines span ±2 vs slope gaps ~3, so
+  λ=0.5 made baseline first-order. Lowered to **0.25** so slope stays primary and baseline only
+  tiebreaks/nudges.
+- **Focus dropped on "+ It depends" promotion (HIGH a11y, fixed).** Focus effect now keys on
+  `[index, phase]`.
+- **Keyboard reorder lost focus at list ends (MEDIUM, fixed).** Removed `disabled` on the ↑/↓
+  buttons (bounds-guarded in `move()` instead).
+- **Single-answer preselect on Back (MEDIUM spec gap, fixed).** Added `selectedOptionId` to state;
+  GO_BACK onto a flavor single rehydrates it; OptionList renders it selected.
+- **No cancel out of an accidental "+ It depends" (MEDIUM, fixed).** Added `CANCEL_DEPENDS` + a
+  "← just give one answer" control on promoted flavor questions.
+- **Dead `RESET` action removed (LOW).**
+
+**Deferred (documented, not blocking):** mid-question drafts are not persisted — only *committed*
+answers resume after refresh; the App/useQuizState resume read-contract could be centralised
+(latent, safe today); the response toggles don't implement the full radiogroup roving-tabindex
+keyboard pattern (pre-existing since Phase 0, not a Phase 1 regression) — a candidate for the
+Phase 3 a11y polish.
+
 ## Out of scope (later phases)
 Onboarding/teaching the mechanic, result reframing/readout copy, design tokens, motion,
 sharing/permalink — Phases 2–3.

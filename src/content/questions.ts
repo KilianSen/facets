@@ -26,9 +26,9 @@ export const QUESTIONS: Question[] = [
       { id: "closeness_2_c2", label: "your boss's friend", axisLevel: 0 },
     ],
     options: [
-      { id: "A", label: "Calmly say 'that one actually stung, what's up?'", vector: {"directness":2,"composure":2} },
+      { id: "A", label: "Stay easy, let it slide — maybe bring it up gently, just the two of you later", vector: {"directness":-2,"composure":2} },
       { id: "B", label: "Laugh it off and change the subject", vector: {} },
-      { id: "C", label: "Go silent and tense, fake-smile through it", vector: {"directness":-2,"composure":-2} },
+      { id: "C", label: "Snap something back, sharp — everyone can see you're done", vector: {"directness":2,"composure":-2} },
     ],
   },
   {
@@ -153,9 +153,9 @@ export const QUESTIONS: Question[] = [
       { id: "stakes_1_c2", label: "Pizza order update", axisLevel: 0 },
     ],
     options: [
-      { id: "A", label: "Take a breath, read it calmly, deal with whatever it says", vector: {"composure":2} },
+      { id: "A", label: "Take a breath, read it, and start handling it head-on", vector: {"composure":2,"lead":2,"boldness":2} },
       { id: "B", label: "Glance at it, then put the phone face-down for now", vector: {} },
-      { id: "C", label: "Spiral, reread it five times, hands kind of shaking", vector: {"composure":-2} },
+      { id: "C", label: "Spiral — reread it five times, freeze up, can't deal yet", vector: {"composure":-2,"lead":-2,"boldness":-2} },
     ],
   },
   {
@@ -167,9 +167,9 @@ export const QUESTIONS: Question[] = [
       { id: "stakes_2_c2", label: "Which meme to post", axisLevel: 0 },
     ],
     options: [
-      { id: "A", label: "Drop a clear plan, assign tasks, 'we're doing this, go'", vector: {"lead":2,"directness":2} },
+      { id: "A", label: "Step in warm — 'hey, we've got this' — smooth it over and keep everyone in", vector: {"warmth":2,"approach":2,"directness":-2} },
       { id: "B", label: "Throw out a soft suggestion and see if it sticks", vector: {} },
-      { id: "C", label: "Hang back and let whoever wants to run it run it", vector: {"lead":-2,"directness":-2} },
+      { id: "C", label: "Get blunt — 'this is dumb, sort it out' — and check out", vector: {"warmth":-2,"approach":-2,"directness":2} },
     ],
   },
   {

@@ -18,8 +18,9 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
     }
   }, [state.phase, state.answers, onComplete])
 
-  // Move focus to the prompt when the question changes (keyboard / screen-reader orientation).
-  useEffect(() => { headingRef.current?.focus() }, [state.index])
+  // Move focus to the prompt when the question OR phase changes (e.g. promoting a flavor
+  // question to depends), so keyboard / screen-reader users aren't stranded on <body>.
+  useEffect(() => { headingRef.current?.focus() }, [state.index, state.phase])
 
   if (state.phase === 'done') return null
   const current = questions[state.index]
@@ -56,6 +57,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
         <QuestionCard
           question={current}
           headingRef={headingRef}
+          selectedId={state.selectedOptionId}
           onSingle={optionId => dispatch({ type: 'ANSWER_SINGLE', optionId })}
           onDepends={() => dispatch({ type: 'START_DEPENDS' })}
         />
@@ -75,6 +77,15 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
             canCommit={state.canCommit}
             onCommit={() => dispatch({ type: 'COMMIT_DEPENDS' })}
           />
+          {current.kind === 'flavor' && (
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'CANCEL_DEPENDS' })}
+              className={`self-start text-xs text-white/40 transition-colors hover:text-white/70 ${ring}`}
+            >
+              ← just give one answer
+            </button>
+          )}
         </div>
       )}
     </div>

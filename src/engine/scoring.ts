@@ -14,9 +14,14 @@ export function describeContingency(axisId: string, dimId: string, slope: number
 }
 
 export function computeProfile(answers: Answer[], content: Content): Profile {
-  const rules = extractRules(answers, content)
+  // Reserve (sharpen) answers are extreme parallel probes (±2 / neutral) held out of the base
+  // measurement; their verdict is surfaced separately via sharpenReadout. Folding them into the
+  // signature/baseline biases the baseline toward 0 on exactly the sharpened axis's dims and can flip
+  // a borderline archetype — so opting into the optional round must not change who you are.
+  const reserveIds = new Set(content.questions.filter(q => q.reserve).map(q => q.id))
+  const rules = extractRules(answers.filter(a => !reserveIds.has(a.questionId)), content)
   const { signature, flexibility } = computeSignature(rules, content)
-  const baseline = extractBaseline(answers, content)
+  const baseline = extractBaseline(answers.filter(a => !reserveIds.has(a.questionId)), content)
   const archetype = matchArchetype(signature, baseline, content)
 
   const dimensionRanges: Profile['dimensionRanges'] = {}

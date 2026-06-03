@@ -1,7 +1,9 @@
 import { useRef } from 'react'
 import type { Answer, Content, Profile } from '../engine/types'
+import { sharpenReadout } from '../engine'
 import { ArchetypeHeader } from './ArchetypeHeader'
 import { SignatureMap } from './SignatureMap'
+import { SharpenVerdict } from './SharpenVerdict'
 import { DimensionRanges } from './DimensionRanges'
 import { BaselineReadout } from './BaselineReadout'
 import { Beam } from '../ui/Beam'
@@ -21,6 +23,8 @@ export function ResultPage({
     ? content.archetypes.find(a => a.id === profile.archetype.runnerUpId)
     : undefined
   const cardRef = useRef<HTMLDivElement>(null)
+  // Verdict from any opt-in sharpen round — derived from the answers, so it survives permalink/resume.
+  const readouts = sharpenReadout(answers, content)
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-7 px-5 py-12">
@@ -31,6 +35,7 @@ export function ResultPage({
           </Beam>
         </Reveal>
         <Reveal delay={0.08}><SignatureMap contingencies={profile.topContingencies} /></Reveal>
+        {readouts.length > 0 && <Reveal delay={0.11}><SharpenVerdict axes={content.axes} readouts={readouts} /></Reveal>}
         <Reveal delay={0.14}><BaselineReadout dims={content.dims} baseline={profile.baseline} flexibility={profile.flexibility} /></Reveal>
         <Reveal delay={0.2}><DimensionRanges dims={content.dims} ranges={profile.dimensionRanges} /></Reveal>
       </div>

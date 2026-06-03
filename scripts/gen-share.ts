@@ -48,7 +48,7 @@ function card(a: (typeof ARCHETYPES)[number]): El {
   ])
 }
 
-function injectMeta(tpl: string, m: { title: string; desc: string; image: string; url: string }): string {
+function injectMeta(tpl: string, m: { title: string; desc: string; image?: string; url: string }): string {
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   let h = tpl
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(m.title)}</title>`)
@@ -56,10 +56,12 @@ function injectMeta(tpl: string, m: { title: string; desc: string; image: string
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(m.desc)}$2`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(m.desc)}$2`)
   const extra =
-    `<meta property="og:image" content="${esc(m.image)}" />` +
     `<meta property="og:url" content="${esc(m.url)}" />` +
-    `<meta name="twitter:card" content="summary_large_image" />` +
-    `<meta name="twitter:image" content="${esc(m.image)}" />`
+    (m.image
+      ? `<meta property="og:image" content="${esc(m.image)}" />` +
+        `<meta name="twitter:card" content="summary_large_image" />` +
+        `<meta name="twitter:image" content="${esc(m.image)}" />`
+      : '')
   return h.replace('</head>', `${extra}</head>`)
 }
 
@@ -80,12 +82,27 @@ async function main() {
     writeFileSync(join(DIST, 'og', `${a.id}.png`), png)
 
     const image = `${SITE_URL}/og/${a.id}.png`
-    const url = `${SITE_URL}/r/${a.id}`
-    const html = injectMeta(template, { title: `I'm ${a.name} — FPTIC`, desc: a.copy, image, url })
+    // Share/result unfurl page (/r/<id>) — boots the SPA result with per-archetype meta.
+    const shareHtml = injectMeta(template, { title: `I'm ${a.name} — FPTIC`, desc: a.copy, image, url: `${SITE_URL}/r/${a.id}` })
     mkdirSync(join(DIST, 'r', a.id), { recursive: true })
-    writeFileSync(join(DIST, 'r', a.id, 'index.html'), html)
+    writeFileSync(join(DIST, 'r', a.id, 'index.html'), shareHtml)
+
+    // Browse/detail page (/archetypes/<id>) — the SPA archetype page, same OG card, browse-framed meta.
+    const detailHtml = injectMeta(template, { title: `${a.name} — FPTIC archetype`, desc: a.copy, image, url: `${SITE_URL}/archetypes/${a.id}` })
+    mkdirSync(join(DIST, 'archetypes', a.id), { recursive: true })
+    writeFileSync(join(DIST, 'archetypes', a.id, 'index.html'), detailHtml)
   }
-  console.log(`gen-share: wrote ${ARCHETYPES.length} OG cards + share pages${SITE_URL ? ` (SITE_URL=${SITE_URL})` : ' (relative URLs)'}`)
+
+  // Gallery index (/archetypes).
+  const galleryHtml = injectMeta(template, {
+    title: 'The 20 FPTIC archetypes',
+    desc: 'Every way people shift across situations — closeness, audience, stakes, power, initiative, energy. The FPTIC field guide.',
+    url: `${SITE_URL}/archetypes`,
+  })
+  mkdirSync(join(DIST, 'archetypes'), { recursive: true })
+  writeFileSync(join(DIST, 'archetypes', 'index.html'), galleryHtml)
+
+  console.log(`gen-share: wrote ${ARCHETYPES.length} OG cards + share/detail pages + gallery${SITE_URL ? ` (SITE_URL=${SITE_URL})` : ' (relative URLs)'}`)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })

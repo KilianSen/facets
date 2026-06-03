@@ -36,5 +36,17 @@ export function validateContent(content: Content): string[] {
     if (!backboneAxes.has(axis.id)) errors.push(`axis "${axis.id}" has no backbone question covering it`)
   }
 
+  // Reserve (parallel sharpen) invariants: they must be backbone so they route to the folded
+  // depends UI, and an axis that has any needs >= 2 items so the consistency verdict has replication.
+  const reserveByAxis = new Map<string, number>()
+  for (const q of content.questions) {
+    if (!q.reserve) continue
+    if (q.kind !== 'backbone') errors.push(`reserve question "${q.id}" must be kind:'backbone'`)
+    if (q.axis) reserveByAxis.set(q.axis, (reserveByAxis.get(q.axis) ?? 0) + 1)
+  }
+  for (const [axisId, count] of reserveByAxis) {
+    if (count < 2) errors.push(`axis "${axisId}" has only ${count} reserve question(s); need >= 2 for a verdict`)
+  }
+
   return errors
 }

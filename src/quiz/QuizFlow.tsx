@@ -9,7 +9,14 @@ import { Reveal } from '../ui/Reveal'
 const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
 const COACH_KEY = 'fptic.coach.v1'
 
-export function QuizFlow({ questions, onComplete }: { questions: Question[]; onComplete: (answers: Answer[]) => void }) {
+export function QuizFlow({
+  questions, onComplete, minIndex = 0,
+}: {
+  questions: Question[]
+  onComplete: (answers: Answer[]) => void
+  /** Floor for the Back button — set to the first appended sharpen item so base answers can't be edited mid-sharpen. */
+  minIndex?: number
+}) {
   const { state, dispatch } = useQuizState(questions)
   const completed = useRef(false)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -76,7 +83,7 @@ export function QuizFlow({ questions, onComplete }: { questions: Question[]; onC
             <button
               type="button"
               onClick={() => dispatch({ type: 'GO_BACK' })}
-              disabled={state.index === 0}
+              disabled={state.index <= minIndex}
               className={`rounded text-xs text-white/50 transition-colors enabled:hover:text-white disabled:opacity-0 ${ring}`}
             >
               ← Back

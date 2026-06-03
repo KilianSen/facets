@@ -1,4 +1,6 @@
-import { type AxisId, type Content, type Rule, type Signature, type AxisStability } from './types'
+import { type AxisId, type Answer, type Content, type Rule, type Signature, type AxisStability } from './types'
+import { extractRules } from './rules'
+import { computeSignature } from './signature'
 
 /**
  * Per-axis "swing" = the strongest contingency on the axis (max |slope| over its dims). High = the
@@ -66,3 +68,65 @@ export const SWING_THRESHOLD = 3.5
 // VERDICT on the parallel sharpen items: axisStability >= this reads as "mixed" (you go both ways),
 // below as "solid" (clean separation: consistent ≤0.11, mixed ≥0.19 on a 3-item parallel set).
 export const MIXED_BAND = 0.15
+
+// Adaptive sharpen loop: ask >= SHARPEN_MIN parallel items, add more while the verdict sits within
+// CONFIDENT_MARGIN of the band (ambiguous), stop at SHARPEN_CAP (all authored items used).
+export const SHARPEN_MIN = 2
+export const SHARPEN_CAP = 4
+export const CONFIDENT_MARGIN = 0.06
+// "solid" requires the swing to actually REPRODUCE on the parallel items: the reserve-only slope must
+// clear this. A flat round (you answered evenly — no shift) is well below it and reads "mixed".
+// Reserve options are ±2, so a genuine shifter lands ~4 and a flat answerer ~0; 1.5 separates cleanly.
+export const SHARPEN_REPRODUCE = 1.5
+
+/** The consistency verdict for an axis from its parallel-item instability. */
+export function sharpenVerdict(instability: number): 'solid' | 'mixed' {
+  return instability >= MIXED_BAND ? 'mixed' : 'solid'
+}
+
+export interface SharpenReadout { axisId: AxisId; instability: number; verdict: 'solid' | 'mixed'; n: number }
+
+/**
+ * The per-axis consistency verdict, derived purely from the parallel "reserve" answers present in a
+ * run. Stateless — the result page, a permalink, or a resumed run can all recompute it from answers
+ * alone. An axis only gets a verdict once its reserve answers carry REAL replicated evidence
+ * (coverage > 0); a "solid" read further requires the swing to reproduce (a genuine slope here) AND
+ * be consistent within each situation level — anything less reads "mixed" (the swing didn't hold up).
+ */
+export function sharpenReadout(answers: Answer[], content: Content): SharpenReadout[] {
+  const reserve = new Map(content.questions.filter(q => q.reserve).map(q => [q.id, q]))
+  const byAxis = new Map<AxisId, Answer[]>()
+  for (const a of answers) {
+    const q = reserve.get(a.questionId)
+    if (!q?.axis) continue
+    const arr = byAxis.get(q.axis) ?? []
+    arr.push(a)
+    byAxis.set(q.axis, arr)
+  }
+  const out: SharpenReadout[] = []
+  for (const [axisId, ans] of byAxis) {
+    if (ans.length < SHARPEN_MIN) continue
+    const rules = extractRules(ans, content)
+    const stab = axisStability(rules, content)[axisId]
+    if (stab.coverage <= 0) continue // no replicated evidence (e.g. all-neutral picks) → withhold a verdict
+    const { signature } = computeSignature(rules, content)
+    const reproduced = Math.max(0, ...content.dims.map(d => Math.abs(signature[axisId]?.[d.id]?.slope ?? 0)))
+    const solid = reproduced >= SHARPEN_REPRODUCE && stab.instability < MIXED_BAND
+    out.push({ axisId, instability: stab.instability, verdict: solid ? 'solid' : 'mixed', n: ans.length })
+  }
+  return out
+}
+
+/**
+ * Adaptive stopping rule (ASYMMETRIC — calibrated on the authored items):
+ * - "mixed" shows up fast: with parallel items a consistent answerer sits at ~0, so a reading clearly
+ *   above the band (>= MIXED_BAND + CONFIDENT_MARGIN) at >= SHARPEN_MIN items is real → stop early.
+ * - "solid" is only trustworthy with the full set: two discrete picks often coincide by chance at low
+ *   N (a mixed answerer can look momentarily solid), so we keep asking until SHARPEN_CAP before we
+ *   commit to "solid". This also matches the intent — pour the extra questions into the swing axis.
+ */
+export function sharpenConfident(instability: number, n: number): boolean {
+  if (n >= SHARPEN_CAP) return true
+  if (n >= SHARPEN_MIN && instability >= MIXED_BAND + CONFIDENT_MARGIN) return true // clearly mixed
+  return false
+}

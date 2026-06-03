@@ -4,6 +4,10 @@ import type { Answer, Archetype, Question } from '../engine/types'
 import { CONTENT } from './index'
 import { ARCHETYPES } from './archetypes'
 
+// Reachability is about the BASE bank — what a real run actually serves. Reserve (parallel sharpen)
+// items are appended only on demand, so they're excluded here.
+const BASE_QUESTIONS = CONTENT.questions.filter(q => !q.reserve)
+
 /**
  * Synthesize the "ideal" answerer for an archetype, MODELLING THE REAL RUN:
  * - backbone questions are answered as `depends` (the only source of axis slopes): per case,
@@ -62,7 +66,7 @@ function inCharacterAnswers(archetype: Archetype, questions: Question[]): Answer
 describe('every archetype is reachable from the question bank', () => {
   for (const archetype of ARCHETYPES) {
     it(`${archetype.code}: its ideal answerer maps to ${archetype.id}`, () => {
-      const profile = computeProfile(inCharacterAnswers(archetype, CONTENT.questions), CONTENT)
+      const profile = computeProfile(inCharacterAnswers(archetype, BASE_QUESTIONS), CONTENT)
       expect(profile.archetype.id).toBe(archetype.id)
     })
   }
@@ -70,7 +74,7 @@ describe('every archetype is reachable from the question bank', () => {
 
 describe('uniform answers map to the constant archetype', () => {
   it('picking the same option for every case yields constant (no slopes)', () => {
-    const answers: Answer[] = CONTENT.questions
+    const answers: Answer[] = BASE_QUESTIONS
       .filter(q => q.cases && q.cases.length > 0)
       .map((q): Answer => ({
         questionId: q.id,

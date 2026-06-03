@@ -10,8 +10,9 @@ export interface SelectOptions {
 }
 
 /**
- * Pick the questions for a run.
- * - `deep`  → the whole bank, in authored order.
+ * Pick the questions for a run. Reserve (parallel sharpen) questions are NEVER part of a base run —
+ * they're drawn on demand by `pickSharpenQuestions`.
+ * - `deep`  → the whole base bank, in authored order.
  * - `short` → all backbone questions + a random sample of flavor up to `target`,
  *             guaranteeing every axis has at least `minPerAxis` questions.
  * `rng` is injectable so callers/tests can make selection deterministic.
@@ -22,13 +23,14 @@ export function selectQuestions(
   rng: () => number = Math.random,
   opts: SelectOptions = {},
 ): Question[] {
-  if (mode === 'deep') return [...content.questions]
+  const base = content.questions.filter(q => !q.reserve)
+  if (mode === 'deep') return base
 
   const target = opts.target ?? 24
   const minPerAxis = opts.minPerAxis ?? 2
 
-  const backbone = content.questions.filter(q => q.kind === 'backbone')
-  const flavor = content.questions.filter(q => q.kind !== 'backbone')
+  const backbone = base.filter(q => q.kind === 'backbone')
+  const flavor = base.filter(q => q.kind !== 'backbone')
 
   const chosen: Question[] = [...backbone]
   const chosenIds = new Set(chosen.map(q => q.id))
@@ -65,4 +67,24 @@ export function selectQuestions(
   }
 
   return chosen
+}
+
+/**
+ * Draw up to `n` parallel "sharpen" reserve questions for one axis, skipping any already asked.
+ * These are the purpose-built, dim-isolating items the adaptive deep-dive appends on demand; a
+ * shuffle keeps the order fresh across runs without affecting which items are comparable.
+ */
+export function pickSharpenQuestions(
+  content: Content,
+  axisId: string,
+  askedIds: Set<string>,
+  n: number,
+  rng: () => number = Math.random,
+): Question[] {
+  const pool = content.questions.filter(q => q.reserve && q.axis === axisId && !askedIds.has(q.id))
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[pool[i], pool[j]] = [pool[j], pool[i]]
+  }
+  return pool.slice(0, Math.max(0, n))
 }

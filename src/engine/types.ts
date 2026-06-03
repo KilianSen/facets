@@ -17,6 +17,8 @@ export interface Question {
   kind: QuestionKind
   axis?: AxisId
   cases?: Case[]
+  /** held out of base runs; drawn only for the adaptive "sharpen" round (parallel items per axis) */
+  reserve?: boolean
 }
 
 export interface Archetype {

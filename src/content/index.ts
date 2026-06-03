@@ -3,10 +3,13 @@ import { AXES } from './axes'
 import { DIMS } from './dimensions'
 import { ARCHETYPES } from './archetypes'
 import { QUESTIONS } from './questions'
+import { SHARPEN_QUESTIONS } from './sharpenQuestions'
 
 export const CONTENT: Content = {
   axes: AXES,
   dims: DIMS,
   archetypes: ARCHETYPES,
-  questions: QUESTIONS,
+  // Base bank + the parallel "reserve" (drawn only for the adaptive sharpen round; excluded from
+  // base selection by `selectQuestions`). Reserve lives here so permalinks/resume rebuild by id.
+  questions: [...QUESTIONS, ...SHARPEN_QUESTIONS],
 }

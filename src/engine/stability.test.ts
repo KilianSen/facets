@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { axisStability, axisSwing } from './stability'
+import { axisStability, axisSwing, sharpenVerdict, sharpenConfident, sharpenReadout, MIXED_BAND, SHARPEN_CAP } from './stability'
 import { computeSignature } from './signature'
 import { extractRules } from './rules'
 import { makeTestContent, vaultAnswer, constantAnswer } from './testFixtures'
-import type { Answer, Content } from './types'
+import type { Answer, Content, Question } from './types'
 
 describe('axisSwing (big-swing trigger)', () => {
   it('is large for a strong contingency and ~0 for a flat one', () => {
@@ -55,5 +55,81 @@ describe('axisStability (within-level inconsistency)', () => {
     const tc = makeTestContent()
     const s = axisStability(extractRules([{ questionId: 'q_close', mode: 'single', optionId: 'A' }], tc), tc)
     expect(s.closeness.coverage).toBe(0)
+  })
+})
+
+describe('sharpen verdict + adaptive stopping', () => {
+  it('reads below the band as solid, at/above as mixed', () => {
+    expect(sharpenVerdict(0)).toBe('solid')
+    expect(sharpenVerdict(MIXED_BAND - 0.01)).toBe('solid')
+    expect(sharpenVerdict(MIXED_BAND)).toBe('mixed')
+    expect(sharpenVerdict(0.5)).toBe('mixed')
+  })
+
+  it('stops early when clearly mixed (>= 2 items)', () => {
+    expect(sharpenConfident(0.5, 1)).toBe(false) // too few
+    expect(sharpenConfident(0.5, 2)).toBe(true)  // clearly mixed, enough items
+  })
+
+  it('does NOT commit to solid early — keeps asking to the cap', () => {
+    // A low reading at low N could be coincidence; solid is only trusted with the full set.
+    expect(sharpenConfident(0, 2)).toBe(false)
+    expect(sharpenConfident(0, 3)).toBe(false)
+    expect(sharpenConfident(0, SHARPEN_CAP)).toBe(true)
+  })
+
+  it('is NOT confident right at the borderline (keeps adding)', () => {
+    expect(sharpenConfident(MIXED_BAND, 2)).toBe(false)
+    expect(sharpenConfident(MIXED_BAND, 3)).toBe(false)
+  })
+
+  it('always stops at the cap, even when borderline', () => {
+    expect(sharpenConfident(MIXED_BAND, SHARPEN_CAP)).toBe(true)
+  })
+})
+
+describe('sharpenReadout (verdict from the parallel answers in a run)', () => {
+  const reserveContent: Content = { ...content, questions: [{ ...q('q1'), reserve: true }, { ...q('q2'), reserve: true }] }
+
+  it('reads consistent parallel answers as solid', () => {
+    const ans = [depends('q1', { a: 'W', b: 'N', c: 'C' }), depends('q2', { a: 'W', b: 'N', c: 'C' })]
+    const r = sharpenReadout(ans, reserveContent)
+    expect(r).toHaveLength(1)
+    expect(r[0].axisId).toBe('closeness')
+    expect(r[0].verdict).toBe('solid')
+    expect(r[0].n).toBe(2)
+  })
+
+  it('reads contradictory parallel answers as mixed', () => {
+    const ans = [depends('q1', { a: 'W', b: 'N', c: 'C' }), depends('q2', { a: 'C', b: 'N', c: 'W' })]
+    expect(sharpenReadout(ans, reserveContent)[0].verdict).toBe('mixed')
+  })
+
+  it('reads a flat round (you never actually shifted) as mixed, not solid', () => {
+    const flat = [depends('q1', { a: 'W', b: 'W', c: 'W' }), depends('q2', { a: 'W', b: 'W', c: 'W' })]
+    const r = sharpenReadout(flat, reserveContent)
+    expect(r).toHaveLength(1)
+    expect(r[0].verdict).toBe('mixed') // consistent within levels, but no slope reproduced
+  })
+
+  it('withholds a verdict entirely when the picks carry no measurable evidence', () => {
+    const blank = [{ id: 'Z', label: 'neutral', vector: {} }]
+    const zq = (id: string): Question => ({
+      id, kind: 'backbone', axis: 'closeness', prompt: 'p', reserve: true,
+      cases: [{ id: `${id}a`, label: 'a', axisLevel: 1 }, { id: `${id}b`, label: 'b', axisLevel: 0.5 }, { id: `${id}c`, label: 'c', axisLevel: 0 }],
+      options: blank,
+    })
+    const blankContent: Content = { ...content, questions: [zq('z1'), zq('z2')] }
+    const zAns = (id: string): Answer => ({ questionId: id, mode: 'depends', ranking: [`${id}a`, `${id}b`, `${id}c`], mapping: { [`${id}a`]: 'Z', [`${id}b`]: 'Z', [`${id}c`]: 'Z' } })
+    expect(sharpenReadout([zAns('z1'), zAns('z2')], blankContent)).toEqual([])
+  })
+
+  it('omits an axis with fewer than the minimum parallel answers', () => {
+    expect(sharpenReadout([depends('q1', { a: 'W', b: 'N', c: 'C' })], reserveContent)).toEqual([])
+  })
+
+  it('ignores answers to non-reserve questions', () => {
+    const ans = [depends('q1', { a: 'W', b: 'N', c: 'C' }), depends('q2', { a: 'W', b: 'N', c: 'C' })]
+    expect(sharpenReadout(ans, content)).toEqual([]) // same answers, but these questions aren't reserve
   })
 })

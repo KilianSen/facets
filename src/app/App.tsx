@@ -1,18 +1,43 @@
 import { useState, useEffect } from 'react'
-import { computeProfile, type Answer, type Profile, type Question } from '../engine'
+import {
+  computeProfile, sharpenReadout, sharpenConfident, SWING_THRESHOLD, SHARPEN_MIN,
+  type Answer, type Profile, type Question,
+} from '../engine'
 import { CONTENT } from '../content'
-import { selectQuestions, type RunMode } from '../content/selectQuestions'
+import { selectQuestions, pickSharpenQuestions, type RunMode } from '../content/selectQuestions'
 import { QuizFlow } from '../quiz/QuizFlow'
+import { SharpenPrompt } from '../quiz/SharpenPrompt'
 import { ResultPage } from '../result/ResultPage'
 import { STORAGE_KEY, loadProgress, type StoredProgress } from '../quiz/useQuizState'
 import { decodeAnswers } from '../share/permalink'
-import { Reveal } from '../ui/Reveal'
+import { LandingPage } from '../archetypes/LandingPage'
 
 export const RESULT_STORAGE_KEY = 'fptic.result.v1'
 
-type View = 'landing' | 'quiz' | 'computing' | 'result'
+type View = 'landing' | 'quiz' | 'sharpen' | 'computing' | 'result'
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
+/** Reserve (sharpen) questions already appended to the running list, if any (single axis by design). */
+function reserveInRun(questions: Question[]): { axisId: string; askedIds: string[] } | null {
+  const r = questions.filter(q => q.reserve)
+  if (r.length === 0 || !r[0].axis) return null
+  return { axisId: r[0].axis, askedIds: r.map(q => q.id) }
+}
+
+/** The strongest swing axis worth offering to sharpen (above threshold, with reserve content). */
+function topSwingAxis(profile: Profile): string | null {
+  const swing = profile.axisSwing ?? {}
+  let best: string | null = null
+  let bestV = -1
+  for (const axis of CONTENT.axes) {
+    const v = swing[axis.id] ?? 0
+    if (v >= SWING_THRESHOLD && v > bestV && pickSharpenQuestions(CONTENT, axis.id, new Set(), 1).length > 0) {
+      bestV = v
+      best = axis.id
+    }
+  }
+  return best
+}
+
 
 interface CachedResult { profile: Profile; answers: Answer[] }
 
@@ -54,12 +79,22 @@ function questionsFromIds(ids: string[]): Question[] {
 }
 
 export function App() {
-  const [cached] = useState(() => fromPermalink() ?? loadResult())
+  // An incomplete in-progress run (e.g. a mid-sharpen refresh) suppresses the cached result, so a
+  // refresh offers "Continue your run" (with the appended parallel questions) instead of jumping to
+  // the stale base result.
+  const [cached] = useState(() => {
+    const stored = loadProgress()
+    const incomplete = !!stored && stored.index < stored.questionIds.length
+    return fromPermalink() ?? (incomplete ? null : loadResult())
+  })
   const [resume, setResume] = useState<StoredProgress | null>(() => (cached ? null : loadProgress()))
   const [view, setView] = useState<View>(cached ? 'result' : 'landing')
   const [profile, setProfile] = useState<Profile | null>(cached?.profile ?? null)
   const [answers, setAnswers] = useState<Answer[]>(cached?.answers ?? [])
   const [questions, setQuestions] = useState<Question[]>([])
+  // Bumped to force a fresh QuizFlow when we append parallel sharpen items and re-enter the quiz.
+  const [quizKey, setQuizKey] = useState(0)
+  const [offerAxis, setOfferAxis] = useState<string | null>(null)
 
   function start(mode: RunMode) {
     clearStored()
@@ -76,11 +111,52 @@ export function App() {
     setView('quiz')
   }
 
+  // Extend the persisted run with more questions and re-enter the quiz at the first new one. Writing
+  // storage first means the remounted QuizFlow (fresh `quizKey`) initialises straight onto it.
+  function appendAndReenter(newList: Question[], a: Answer[]) {
+    const index = questions.length
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers: a, index, questionIds: newList.map(q => q.id) })) } catch { /* ignore */ }
+    setQuestions(newList)
+    setQuizKey(k => k + 1)
+    setView('quiz')
+  }
+
   function handleComplete(a: Answer[]) {
     const computed = computeProfile(a, CONTENT)
     try { localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify({ profile: computed, answers: a })) } catch { /* ignore */ }
     setProfile(computed)
     setAnswers(a)
+
+    // Mid-sharpen: keep adding parallel items on this axis until the verdict is confident or we
+    // exhaust the reserve, then finalise.
+    const inRun = reserveInRun(questions)
+    if (inRun) {
+      const readout = sharpenReadout(a, CONTENT).find(r => r.axisId === inRun.axisId)
+      const confident = readout ? sharpenConfident(readout.instability, readout.n) : true
+      if (!confident) {
+        const next = pickSharpenQuestions(CONTENT, inRun.axisId, new Set(inRun.askedIds), 1)
+        if (next.length > 0) { appendAndReenter([...questions, ...next], a); return }
+      }
+      setView('computing')
+      return
+    }
+
+    // Base run just finished — offer to sharpen the single strongest swing axis, if any stands out.
+    const axisId = topSwingAxis(computed)
+    if (axisId) { setOfferAxis(axisId); setView('sharpen'); return }
+    setView('computing')
+  }
+
+  function beginSharpen() {
+    if (!offerAxis) return
+    const items = pickSharpenQuestions(CONTENT, offerAxis, new Set(), SHARPEN_MIN)
+    setOfferAxis(null)
+    if (items.length === 0) { setView('computing'); return }
+    appendAndReenter([...questions, ...items], answers)
+  }
+
+  function skipSharpen() {
+    setOfferAxis(null)
     setView('computing')
   }
 
@@ -106,41 +182,25 @@ export function App() {
   if (view === 'landing') {
     const inProgress = !!resume && resume.questionIds.length > 0 && resume.index < resume.questionIds.length
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center gap-6 px-5 text-center">
-        <Reveal><p className="text-xs uppercase tracking-[0.3em] text-accent-soft/70">FPTIC</p></Reveal>
-        <Reveal delay={0.05}>
-          <h1 className="font-display text-4xl font-bold leading-[1.05] sm:text-5xl">The personality test that lets you say "it depends."</h1>
-        </Reveal>
-        <Reveal delay={0.12}>
-          <p className="text-sm leading-relaxed text-white/70">Most tests force one box. Here you set the context for each question — and get a map of how you actually shift.</p>
-        </Reveal>
-
-        {inProgress && (
-          <Reveal delay={0.16}>
-            <button type="button" onClick={continueRun} className={`rounded-beam bg-accent/15 px-6 py-3 text-sm font-medium text-accent-soft shadow-glow transition-colors hover:bg-accent/25 ${ring}`}>
-              Continue your run ({resume!.index}/{resume!.questionIds.length})
-            </button>
-          </Reveal>
-        )}
-
-        <Reveal delay={0.2} className="flex flex-col items-center gap-2">
-          {inProgress && <span className="text-xs text-white/40">or start fresh</span>}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button type="button" onClick={() => start('short')} className={`flex flex-col items-center gap-0.5 rounded-beam bg-white/10 px-6 py-3 shadow-glow transition-all hover:bg-white/15 ${ring}`}>
-              <span className="text-sm font-medium">Quick read</span>
-              <span className="text-xs text-white/50">~24 questions · ~5 min</span>
-            </button>
-            <button type="button" onClick={() => start('deep')} className={`flex flex-col items-center gap-0.5 rounded-beam border border-white/15 px-6 py-3 transition-colors hover:bg-white/10 ${ring}`}>
-              <span className="text-sm font-medium text-white/80">Deep dive</span>
-              <span className="text-xs text-white/50">~60 questions · ~10 min · sharper result</span>
-            </button>
-          </div>
-        </Reveal>
-      </div>
+      <LandingPage
+        resume={inProgress ? { index: resume!.index, total: resume!.questionIds.length } : null}
+        onStart={start}
+        onContinue={continueRun}
+      />
     )
   }
 
-  if (view === 'quiz') return <QuizFlow questions={questions} onComplete={handleComplete} />
+  if (view === 'quiz') {
+    // Once a sharpen item has been appended, Back can't cross back into the base questions (editing
+    // them would leave the round latched to a now-stale axis).
+    const firstReserve = questions.findIndex(q => q.reserve)
+    return <QuizFlow key={quizKey} questions={questions} minIndex={firstReserve === -1 ? 0 : firstReserve} onComplete={handleComplete} />
+  }
+
+  if (view === 'sharpen' && offerAxis) {
+    const axis = CONTENT.axes.find(a => a.id === offerAxis)!
+    return <SharpenPrompt axis={axis} onSharpen={beginSharpen} onSkip={skipSharpen} />
+  }
 
   if (view === 'computing') {
     return (

@@ -68,3 +68,53 @@ console.log('\n=== (B) VERDICT band: axisStability on a 3-item PARALLEL set ==='
 console.log(`consistent p50/p90 = ${f(pct(consistentV, .5))}/${f(pct(consistentV, .9))}   mixed p10/p50 = ${f(pct(mixedV, .1))}/${f(pct(mixedV, .5))}`)
 const band = (pct(consistentV, .9) + pct(mixedV, .1)) / 2
 console.log(`MIXED_BAND ~= ${f(band)}  ->  consistent calls "mixed" ${(consistentV.filter(x => x >= band).length / consistentV.length * 100).toFixed(0)}%, mixed calls "mixed" ${(mixedV.filter(x => x >= band).length / mixedV.length * 100).toFixed(0)}%`)
+
+// ---- (C) GATE: simulate the ADAPTIVE loop on the AUTHORED reserve set via the real sharpenReadout ----
+// Proves the hand-written parallel items drive the production verdict correctly: a consistent shifter
+// ends "solid"; a noisy one ends "mixed"; and — the bug the review caught — a FLAT answerer (always
+// the same option, no real shift) reads "mixed", not a bogus "rock-solid", and an all-neutral answerer
+// gets NO verdict at all (no evidence). Uses the same sharpenReadout/sharpenConfident the app uses.
+import { SHARPEN_MIN, SHARPEN_CAP, SHARPEN_REPRODUCE, sharpenReadout, sharpenConfident } from '../src/engine'
+
+function flatAns(q: Question, optId: string): Answer {
+  return { questionId: q.id, mode: 'depends', ranking: q.cases!.map(c => c.id), mapping: Object.fromEntries(q.cases!.map(c => [c.id, optId])) }
+}
+// A genuine consistent shifter on THIS axis: high → the bold option (A), low → reserved (C), mid → neutral
+// (B). This is the population that actually reaches the sharpen round (they swung hard on the axis).
+function consistentAns(q: Question, sign: number): Answer {
+  const mapping: Record<string, string> = {}
+  for (const c of q.cases!) {
+    const want = sign * (c.axisLevel - 0.5)
+    mapping[c.id] = want > 0.01 ? 'A' : want < -0.01 ? 'C' : 'B'
+  }
+  return { questionId: q.id, mode: 'depends', ranking: q.cases!.map(c => c.id), mapping }
+}
+// Run the production loop over a cohort's answer set; return [verdict|'none', itemsUsed].
+function runLoop(items: Answer[], axisId: string): [string, number] {
+  for (let k = SHARPEN_MIN; k <= SHARPEN_CAP; k++) {
+    const r = sharpenReadout(items.slice(0, k), CONTENT).find(x => x.axisId === axisId)
+    const confident = r ? sharpenConfident(r.instability, r.n) : true
+    if (confident || k === SHARPEN_CAP) return [r ? r.verdict : 'none', k]
+  }
+  return ['none', SHARPEN_CAP]
+}
+
+console.log(`\n=== (C) AUTHORED reserve gate: real verdict via sharpenReadout (REPRODUCE=${SHARPEN_REPRODUCE}) ===`)
+const tally = { consSolid: 0, mixMixed: 0, flatASolid: 0, flatBNone: 0, n: 0 }
+for (const axis of CONTENT.axes) {
+  const reserve = CONTENT.questions.filter(q => q.reserve && q.axis === axis.id).slice(0, SHARPEN_CAP)
+  if (reserve.length < SHARPEN_CAP) continue
+  for (let i = 0; i < 2000; i++) {
+    const sign = Math.random() < 0.5 ? 1 : -1
+    if (runLoop(reserve.map(q => consistentAns(q, sign)), axis.id)[0] === 'solid') tally.consSolid++
+    if (runLoop(reserve.map(randomAns), axis.id)[0] === 'mixed') tally.mixMixed++
+    if (runLoop(reserve.map(q => flatAns(q, 'A')), axis.id)[0] === 'solid') tally.flatASolid++ // bug if >0
+    if (runLoop(reserve.map(q => flatAns(q, 'B')), axis.id)[0] === 'none') tally.flatBNone++   // all-neutral → no verdict
+    tally.n++
+  }
+}
+const pc = (x: number) => (x / tally.n * 100).toFixed(1)
+console.log(`consistent shifter → solid : ${pc(tally.consSolid)}%   (want ~100)`)
+console.log(`noisy / random     → mixed : ${pc(tally.mixMixed)}%   (want high)`)
+console.log(`FLAT (all-A, no shift) wrongly "solid" : ${pc(tally.flatASolid)}%   (want 0)`)
+console.log(`all-neutral (all-B) correctly NO verdict: ${pc(tally.flatBNone)}%   (want ~100)`)

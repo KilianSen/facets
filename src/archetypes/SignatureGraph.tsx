@@ -72,7 +72,7 @@ export function SignatureGraph({ archetype, accent }: { archetype: Archetype; ac
                 {s.slope >= 0 ? 'rises' : 'falls'}
               </span>
             </div>
-            <SlopeBeam slope={s.slope} accent={accent} />
+            <SlopeBeam slope={s.slope} accent={accent} uid={`${s.axisId}-${s.dimId}`} />
             <div className="mt-1 flex justify-between text-[11px] text-white/40">
               <span>{axis.lowLabel}</span>
               <span>{axis.highLabel}</span>

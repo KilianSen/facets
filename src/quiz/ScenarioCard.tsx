@@ -1,8 +1,7 @@
-import { motion } from 'framer-motion'
-import { Check, Sparkles, User, Users, ChevronLeft, ChevronRight, Layers } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Layers, Sparkles } from 'lucide-react'
 import type { Case, Option } from '../engine/types'
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
+const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2'
 
 interface ScenarioCardProps {
   cases: Case[]
@@ -14,10 +13,14 @@ interface ScenarioCardProps {
   onFillAll?: (optionId: string) => void
 }
 
-function getCaseIcon(index: number, total: number) {
-  if (index === 0) return Sparkles
-  if (index === total - 1) return User
-  return Users
+function getCaseEmoji(label: string, index: number, total: number): string {
+  const lower = label.toLowerCase()
+  if (lower.includes('friend') || lower.includes('sibling') || lower.includes('crew') || lower.includes('partner')) return '👯'
+  if (lower.includes('classmate') || lower.includes('teammate') || lower.includes('coworker')) return '🤝'
+  if (lower.includes('boss') || lower.includes('stranger') || lower.includes('rando') || lower.includes('never met')) return '👤'
+  if (index === 0) return '🔥'
+  if (index === total - 1) return '🧊'
+  return '⚡'
 }
 
 export function ScenarioCard({
@@ -33,15 +36,16 @@ export function ScenarioCard({
   if (!currentCase) return null
 
   const selectedOptionId = mapping[currentCase.id]
-  const CaseIcon = getCaseIcon(caseIndex, cases.length)
+  const emoji = getCaseEmoji(currentCase.label, caseIndex, cases.length)
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 1. Step Indicator Pills (Hinge / Story-like breadcrumb) */}
-      <div className="flex items-center justify-between gap-1.5 rounded-2xl bg-white/[0.03] p-1.5 border border-white/5 backdrop-blur-sm">
+      {/* 1. Neo-Brutalist Step Pills */}
+      <div className="flex items-center justify-between gap-2 p-1">
         {cases.map((c, idx) => {
           const isCurrent = idx === caseIndex
           const isAnswered = mapping[c.id] !== undefined
+          const pillEmoji = getCaseEmoji(c.label, idx, cases.length)
 
           return (
             <button
@@ -50,101 +54,89 @@ export function ScenarioCard({
               onClick={() => onSetCaseIndex(idx)}
               aria-label={`Step ${idx + 1}: ${c.label}`}
               aria-current={isCurrent ? 'step' : undefined}
-              className={`group flex flex-1 items-center justify-center gap-2 rounded-xl py-2 px-2 text-xs font-medium transition-all duration-200 ${ring} ${
+              className={`group flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 px-2 text-xs font-black uppercase tracking-wider transition-all duration-150 border-2 border-slate-950 ${ring} ${
                 isCurrent
-                  ? 'bg-accent/20 text-white shadow-sm ring-1 ring-accent/40 font-semibold'
+                  ? 'bg-slate-950 text-white shadow-[3px_3px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
                   : isAnswered
-                    ? 'text-white/80 hover:bg-white/5 hover:text-white'
-                    : 'text-white/40 hover:bg-white/5 hover:text-white/70'
+                    ? 'bg-pop-yellow text-slate-950 shadow-[2px_2px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px]'
+                    : 'bg-white text-slate-500 hover:text-slate-950 hover:bg-slate-50'
               }`}
             >
-              <span
-                className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] tabular-nums transition-colors ${
-                  isCurrent
-                    ? 'bg-accent text-ink font-bold'
-                    : isAnswered
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-white/10 text-white/50 group-hover:bg-white/15'
-                }`}
-              >
-                {isAnswered && !isCurrent ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : idx + 1}
+              <span>{pillEmoji}</span>
+              <span className="tabular-nums">
+                {isAnswered && !isCurrent ? <Check className="inline h-3.5 w-3.5 stroke-[3]" /> : idx + 1}
               </span>
-              <span className="hidden truncate sm:inline max-w-[110px]">{c.label}</span>
+              <span className="hidden truncate sm:inline max-w-[100px]">{c.label}</span>
             </button>
           )
         })}
       </div>
 
-      {/* 2. Active Scenario Target Card */}
-      <motion.div
-        key={currentCase.id}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.15 }}
-        className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-5 shadow-xl shadow-black/20"
-      >
-        {/* Target Chip */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/15 text-accent-soft ring-1 ring-accent/30 shadow-inner">
-              <CaseIcon className="h-4 w-4" />
+      {/* 2. Physical Context Card (Hinge Prompt + Neo-Brutalist Stamp) */}
+      <div className="rounded-[32px] bg-bone text-slate-900 p-6 md:p-8 border-3 border-slate-950 shadow-[6px_6px_0px_#000] flex flex-col gap-5 transition-all">
+        {/* Context Target Banner */}
+        <div className="bg-pop-yellow text-slate-950 border-2 border-slate-950 rounded-2xl p-4 shadow-[3px_3px_0px_#000] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white border-2 border-slate-950 text-2xl shadow-[2px_2px_0px_#000]">
+              {emoji}
             </div>
             <div className="flex flex-col">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-accent-soft">
-                Context {caseIndex + 1} of {cases.length}
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-800">
+                Plot Context {caseIndex + 1} of {cases.length}
               </span>
-              <span className="text-base font-semibold text-white">
-                When it’s <span className="text-accent underline decoration-accent/40 underline-offset-4">{currentCase.label}</span>:
+              <span className="text-base md:text-lg font-black text-slate-950 leading-tight">
+                When it’s <span className="underline decoration-2 underline-offset-4">{currentCase.label}</span>:
               </span>
             </div>
           </div>
-          <span className="text-xs text-white/40 tabular-nums font-mono">
-            {Object.keys(mapping).length}/{cases.length} answered
+          <span className="text-[11px] font-black font-mono bg-white text-slate-950 px-2.5 py-1 rounded-lg border-2 border-slate-950 shadow-[1px_1px_0px_#000]">
+            {Object.keys(mapping).length}/{cases.length}
           </span>
         </div>
 
-        {/* Quick-Reply Action Bubbles */}
-        <div role="radiogroup" aria-label={`Response for ${currentCase.label}`} className="flex flex-col gap-2.5 pt-1">
+        {/* Quick-Reply Options */}
+        <div role="radiogroup" aria-label={`Response for ${currentCase.label}`} className="flex flex-col gap-3 pt-1">
           {options.map((o, optIdx) => {
             const checked = selectedOptionId === o.id
             return (
-              <motion.button
+              <button
                 key={o.id}
                 type="button"
                 role="radio"
                 aria-checked={checked}
-                whileTap={{ scale: 0.98 }}
                 onClick={() => onMap(currentCase.id, o.id)}
-                className={`group relative flex w-full items-start gap-3.5 rounded-2xl p-4 text-left transition-all duration-200 ${ring} ${
+                className={`group relative flex w-full items-start gap-3.5 rounded-2xl p-4 text-left transition-all duration-150 ${ring} ${
                   checked
-                    ? 'bg-gradient-to-r from-accent/20 to-fuchsia-500/10 text-white ring-2 ring-accent shadow-md shadow-accent/10'
-                    : 'bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white border border-white/5 hover:border-white/15'
+                    ? 'bg-coral text-white border-2 border-slate-950 shadow-[3px_3px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
+                    : 'bg-white text-slate-900 border-2 border-slate-950 shadow-[3px_3px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
                 }`}
               >
                 <div
-                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-semibold tabular-nums transition-colors ${
+                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-black tabular-nums transition-colors border ${
                     checked
-                      ? 'bg-accent text-ink font-bold shadow-sm'
-                      : 'bg-white/10 text-white/50 group-hover:bg-white/15 group-hover:text-white/80'
+                      ? 'bg-slate-950 text-white border-slate-950'
+                      : 'bg-slate-100 text-slate-800 border-slate-300 group-hover:bg-slate-200'
                   }`}
                 >
                   {checked ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : optIdx + 1}
                 </div>
-                <span className="flex-1 text-sm leading-snug">{o.label}</span>
-              </motion.button>
+                <span className="flex-1 text-sm md:text-base font-bold leading-snug">
+                  {o.label}
+                </span>
+              </button>
             )
           })}
         </div>
 
-        {/* Stepper Navigation Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+        {/* Stepper Navigation Controls */}
+        <div className="flex items-center justify-between pt-3 border-t-2 border-slate-200 mt-1">
           <button
             type="button"
             onClick={() => onSetCaseIndex(caseIndex - 1)}
             disabled={caseIndex === 0}
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-white/50 transition-colors enabled:hover:text-white disabled:opacity-0 ${ring}`}
+            className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-wider text-slate-950 bg-white border-2 border-slate-950 transition-all enabled:shadow-[2px_2px_0px_#000] enabled:hover:translate-x-[-1px] enabled:hover:translate-y-[-1px] disabled:opacity-0 ${ring}`}
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
+            <ChevronLeft className="h-3.5 w-3.5 stroke-[3]" />
             <span>Previous context</span>
           </button>
 
@@ -152,30 +144,33 @@ export function ScenarioCard({
             <button
               type="button"
               onClick={() => onSetCaseIndex(caseIndex + 1)}
-              className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-accent-soft transition-colors hover:text-white ${ring}`}
+              className={`flex items-center gap-1 rounded-xl px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-slate-950 bg-pop-yellow border-2 border-slate-950 shadow-[2px_2px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all ${ring}`}
             >
               <span>Next context</span>
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-3.5 w-3.5 stroke-[3]" />
             </button>
           ) : (
-            <span className="text-xs text-white/40">All set ✨</span>
+            <span className="text-xs font-black text-slate-950 flex items-center gap-1 bg-pop-yellow px-2.5 py-1 rounded-lg border-2 border-slate-950 shadow-[1px_1px_0px_#000]">
+              <Sparkles className="h-3.5 w-3.5" />
+              All contexts ready!
+            </span>
           )}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Helper: Same for everyone */}
+      {/* Helper: Same for all contexts */}
       {onFillAll && (
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs text-white/40">
-          <span className="flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5 text-white/30" />
-            Same reaction for all?
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs text-white/60">
+          <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[11px]">
+            <Layers className="h-3.5 w-3.5" />
+            Same for everyone?
           </span>
           {options.map(o => (
             <button
               key={o.id}
               type="button"
               onClick={() => onFillAll(o.id)}
-              className={`rounded-lg bg-white/5 px-2.5 py-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white border border-white/5 ${ring}`}
+              className={`rounded-xl bg-slate-900 px-3 py-1 text-white font-bold text-xs border-2 border-slate-700 hover:border-white shadow-[2px_2px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all ${ring}`}
             >
               {o.label.length > 25 ? `${o.label.slice(0, 25)}…` : o.label}
             </button>

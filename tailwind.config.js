@@ -5,10 +5,21 @@ export default {
     extend: {
       fontFamily: {
         display: ['"Clash Display"', 'system-ui', 'sans-serif'],
+        editorial: ['Fraunces', 'Georgia', 'serif'],
         sans: ['Satoshi', 'system-ui', 'sans-serif'],
       },
       colors: {
         ink: '#08080c',
+        bone: '#FAF7F2',
+        coral: {
+          DEFAULT: '#FF5A36',
+          hover: '#FF4119',
+        },
+        pop: {
+          yellow: '#FFE500',
+          pink: '#FF4D8D',
+          cyan: '#00F0FF',
+        },
         accent: {
           DEFAULT: '#22d3ee', // cyan
           soft: '#67e8f9',

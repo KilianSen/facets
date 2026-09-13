@@ -7,13 +7,7 @@
 body {
   @apply text-white antialiased;
   font-family: 'Satoshi', system-ui, sans-serif;
-  background-color: #090a12;
-  /* Atmosphere — layered warm and vibrant glows for personality quiz energy */
-  background-image:
-    radial-gradient(60rem 60rem at 15% -10%, rgba(217, 70, 239, 0.14), transparent 60%),
-    radial-gradient(55rem 55rem at 110% 20%, rgba(34, 211, 238, 0.12), transparent 55%),
-    radial-gradient(45rem 45rem at 50% 110%, rgba(245, 158, 11, 0.08), transparent 55%);
-  background-attachment: fixed;
+  background-color: #0b0c15;
 }
 
 /* Fine grain film over the whole UI for texture. */

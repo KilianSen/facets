@@ -1,8 +1,7 @@
-import { motion } from 'framer-motion'
 import { Check } from 'lucide-react'
 import type { Option } from '../engine/types'
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
+const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2'
 
 export function OptionList({
   options,
@@ -16,34 +15,35 @@ export function OptionList({
   onSelect: (optionId: string) => void
 }) {
   return (
-    <div role="group" aria-labelledby={labelledById} className="flex flex-col gap-2.5">
+    <div role="group" aria-labelledby={labelledById} className="flex flex-col gap-3">
       {options.map((o, i) => {
         const selected = selectedId === o.id
         return (
-          <motion.button
+          <button
             key={o.id}
             type="button"
             aria-current={selected || undefined}
-            whileTap={{ scale: 0.98 }}
             onClick={() => onSelect(o.id)}
-            className={`group flex items-start gap-3.5 rounded-2xl p-4 text-left transition-all duration-200 ${ring} ${
+            className={`group relative flex w-full items-start gap-3.5 rounded-2xl p-4 text-left transition-all duration-150 ${ring} ${
               selected
-                ? 'bg-gradient-to-r from-accent/20 to-fuchsia-500/10 text-white ring-2 ring-accent shadow-md shadow-accent/10'
-                : 'bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white border border-white/5 hover:border-white/15'
+                ? 'bg-coral text-white border-2 border-slate-950 shadow-[3px_3px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
+                : 'bg-white text-slate-900 border-2 border-slate-950 shadow-[3px_3px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
             }`}
           >
             <span
               aria-hidden="true"
-              className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-xs font-semibold tabular-nums transition-colors ${
+              className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-xs font-black tabular-nums transition-colors border ${
                 selected
-                  ? 'bg-accent text-ink font-bold shadow-sm'
-                  : 'bg-white/10 text-white/50 group-hover:bg-white/15 group-hover:text-white/80'
+                  ? 'bg-slate-950 text-white border-slate-950'
+                  : 'bg-slate-100 text-slate-800 border-slate-300 group-hover:bg-slate-200'
               }`}
             >
               {selected ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : i + 1}
             </span>
-            <span className="flex-1 text-sm leading-snug">{o.label}</span>
-          </motion.button>
+            <span className="flex-1 text-sm md:text-base font-bold leading-snug">
+              {o.label}
+            </span>
+          </button>
         )
       })}
     </div>

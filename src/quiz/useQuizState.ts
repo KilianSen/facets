@@ -11,6 +11,7 @@ export interface QuizState {
   answers: Answer[]
   draftRanking: string[]
   draftMapping: Record<string, string>
+  caseIndex: number
   canCommit: boolean
   /** prior single-tap choice to preselect when returning to a flavor question via Back */
   selectedOptionId?: string
@@ -21,7 +22,8 @@ export type QuizAction =
   | { type: 'START_DEPENDS' }
   | { type: 'CANCEL_DEPENDS' }
   | { type: 'SET_RANK_ORDER'; ranking: string[] }
-  | { type: 'MAP_CASE'; caseId: string; optionId: string }
+  | { type: 'SET_CASE_INDEX'; caseIndex: number }
+  | { type: 'MAP_CASE'; caseId: string; optionId: string; autoAdvance?: boolean }
   | { type: 'FILL_ALL'; optionId: string }
   | { type: 'COMMIT_DEPENDS' }
   | { type: 'GO_BACK' }
@@ -47,7 +49,7 @@ export function loadProgress(): StoredProgress | null {
   return null
 }
 
-const EMPTY_DRAFT = { draftRanking: [] as string[], draftMapping: {} as Record<string, string>, canCommit: false }
+const EMPTY_DRAFT = { draftRanking: [] as string[], draftMapping: {} as Record<string, string>, caseIndex: 0, canCommit: false }
 
 function phaseFor(index: number, questions: Question[]): QuizPhase {
   if (index >= questions.length) return 'done'
@@ -55,11 +57,11 @@ function phaseFor(index: number, questions: Question[]): QuizPhase {
 }
 
 /** Fresh state for landing on `index` (default case order when it's a depends question). */
-function landOn(index: number, questions: Question[]): Pick<QuizState, 'index' | 'phase' | 'draftRanking' | 'draftMapping' | 'canCommit' | 'selectedOptionId'> {
+function landOn(index: number, questions: Question[]): Pick<QuizState, 'index' | 'phase' | 'draftRanking' | 'draftMapping' | 'caseIndex' | 'canCommit' | 'selectedOptionId'> {
   const phase = phaseFor(index, questions)
   const q = questions[index]
   if (phase === 'depends' && q?.cases) {
-    return { index, phase, draftRanking: q.cases.map(c => c.id), draftMapping: {}, canCommit: false, selectedOptionId: undefined }
+    return { index, phase, draftRanking: q.cases.map(c => c.id), draftMapping: {}, caseIndex: 0, canCommit: false, selectedOptionId: undefined }
   }
   return { index, phase, ...EMPTY_DRAFT, selectedOptionId: undefined }
 }
@@ -90,7 +92,7 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
 
     case 'START_DEPENDS':
       if (!current?.cases) return state
-      return { ...state, phase: 'depends', draftRanking: current.cases.map(c => c.id), draftMapping: {}, canCommit: false, selectedOptionId: undefined }
+      return { ...state, phase: 'depends', draftRanking: current.cases.map(c => c.id), draftMapping: {}, caseIndex: 0, canCommit: false, selectedOptionId: undefined }
 
     case 'CANCEL_DEPENDS':
       // Only a promoted flavor question can collapse back to single-tap; backbone stays depends.
@@ -101,11 +103,20 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
       if (state.phase !== 'depends') return state
       return { ...state, draftRanking: action.ranking }
 
+    case 'SET_CASE_INDEX': {
+      if (!current?.cases) return state
+      const maxIdx = Math.max(0, current.cases.length - 1)
+      const nextIdx = Math.max(0, Math.min(maxIdx, action.caseIndex))
+      return { ...state, caseIndex: nextIdx }
+    }
+
     case 'MAP_CASE': {
       if (!current?.cases) return state
       const draftMapping = { ...state.draftMapping, [action.caseId]: action.optionId }
       const canCommit = current.cases.every(c => draftMapping[c.id] !== undefined)
-      return { ...state, draftMapping, canCommit }
+      const shouldAdvance = action.autoAdvance !== false && state.caseIndex < current.cases.length - 1
+      const nextCaseIndex = shouldAdvance ? state.caseIndex + 1 : state.caseIndex
+      return { ...state, draftMapping, canCommit, caseIndex: nextCaseIndex }
     }
 
     case 'FILL_ALL': {
@@ -131,7 +142,7 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
       persist(state.answers, index, questions)
       if (prior && prior.mode === 'depends') {
         const canCommit = prev.cases ? prev.cases.every(c => prior.mapping[c.id] !== undefined) : false
-        return { ...state, index, phase: 'depends', draftRanking: prior.ranking, draftMapping: prior.mapping, canCommit, selectedOptionId: undefined }
+        return { ...state, index, phase: 'depends', draftRanking: prior.ranking, draftMapping: prior.mapping, caseIndex: 0, canCommit, selectedOptionId: undefined }
       }
       return { ...state, ...landOn(index, questions), selectedOptionId: prior && prior.mode === 'single' ? prior.optionId : undefined }
     }

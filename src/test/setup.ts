@@ -15,6 +15,21 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   })) as unknown as typeof window.matchMedia
 }
 
+// jsdom lacks PointerEvent, which Framer Motion 12 dispatches during keyboard press gestures.
+if (typeof window !== 'undefined' && !window.PointerEvent) {
+  class PointerEvent extends MouseEvent {
+    public pointerId: number
+    public pointerType: string
+    constructor(type: string, params: PointerEventInit = {}) {
+      super(type, params)
+      this.pointerId = params.pointerId ?? 0
+      this.pointerType = params.pointerType ?? 'mouse'
+    }
+  }
+  window.PointerEvent = PointerEvent as any
+  globalThis.PointerEvent = PointerEvent as any
+}
+
 // Node 22 ships a partial `localStorage` stub (missing `clear()`) that shadows jsdom's
 // implementation on the test global — and it also shadows `window.localStorage`. jsdom's
 // real backing Storage is exposed internally as `_localStorage` on its window, and vitest

@@ -52,12 +52,15 @@ async function driveToResult(onPrompt: 'sharpen' | 'skip', why: 'answer' | 'skip
     const promptBtn = screen.queryByRole('button', { name: onPrompt === 'sharpen' ? /Pin down my/ : /Skip to my results/ })
     if (promptBtn) { await userEvent.click(promptBtn); continue }
     if (screen.queryByRole('button', { name: 'Continue' })) {
-      // Diagonal mapping (case i → option i): on the parallel sharpen items this is high→bold, mid→neutral,
-      // low→reserved — a clean, consistent contingency that reads "solid".
-      const groups = screen.getAllByRole('radiogroup')
-      for (let gi = 0; gi < groups.length; gi++) {
-        const radios = within(groups[gi]).getAllByRole('radio')
-        await userEvent.click(radios[Math.min(gi, radios.length - 1)])
+      // Diagonal mapping (case i → option i) through the scenario stepper:
+      let step = 0
+      while (screen.queryByRole('radiogroup') && step < 10) {
+        const group = screen.getByRole('radiogroup')
+        const continueBtn = screen.getByRole('button', { name: 'Continue' })
+        if (!continueBtn.hasAttribute('disabled')) break
+        const radios = within(group).getAllByRole('radio')
+        await userEvent.click(radios[Math.min(step, radios.length - 1)])
+        step++
       }
       await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
     } else if (screen.queryByRole('group')) {

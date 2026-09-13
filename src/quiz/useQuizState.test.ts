@@ -103,6 +103,14 @@ describe('quizReducer', () => {
     expect(s.phase).toBe('single')
   })
 
+  it('tracks caseIndex and advances automatically on MAP_CASE', () => {
+    expect(s.caseIndex).toBe(0)
+    s = quizReducer(s, { type: 'MAP_CASE', caseId: 'a', optionId: 'X' }, questions)
+    expect(s.caseIndex).toBe(1)
+    s = quizReducer(s, { type: 'SET_CASE_INDEX', caseIndex: 0 }, questions)
+    expect(s.caseIndex).toBe(0)
+  })
+
   it('persists answers + index + questionIds and resumes at the saved index', () => {
     s = commitBackbone(s)
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)

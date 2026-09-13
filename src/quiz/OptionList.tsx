@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react'
 import type { Option } from '../engine/types'
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2'
+const ring = 'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-black'
 
 export function OptionList({
   options,
@@ -15,7 +15,7 @@ export function OptionList({
   onSelect: (optionId: string) => void
 }) {
   return (
-    <div role="group" aria-labelledby={labelledById} className="flex flex-col gap-3">
+    <div role="group" aria-labelledby={labelledById} className="flex flex-col gap-2.5">
       {options.map((o, i) => {
         const selected = selectedId === o.id
         return (
@@ -24,23 +24,23 @@ export function OptionList({
             type="button"
             aria-current={selected || undefined}
             onClick={() => onSelect(o.id)}
-            className={`group relative flex w-full items-start gap-3.5 rounded-2xl p-4 text-left transition-all duration-150 ${ring} ${
+            className={`group relative flex w-full items-start gap-4 rounded-xl px-4 py-3.5 text-left transition-all duration-150 border ${ring} ${
               selected
-                ? 'bg-coral text-white border-2 border-slate-950 shadow-[3px_3px_0px_#000] translate-x-[-1px] translate-y-[-1px]'
-                : 'bg-white text-slate-900 border-2 border-slate-950 shadow-[3px_3px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                ? 'bg-white text-black border-white shadow-sm'
+                : 'bg-white/[0.02] text-neutral-300 border-white/10 hover:border-white/30 hover:bg-white/[0.05] hover:text-white'
             }`}
           >
             <span
               aria-hidden="true"
-              className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-xs font-black tabular-nums transition-colors border ${
+              className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md font-mono text-[11px] font-bold transition-colors ${
                 selected
-                  ? 'bg-slate-950 text-white border-slate-950'
-                  : 'bg-slate-100 text-slate-800 border-slate-300 group-hover:bg-slate-200'
+                  ? 'bg-black text-white'
+                  : 'bg-white/10 text-neutral-400 group-hover:text-white group-hover:bg-white/20'
               }`}
             >
-              {selected ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : i + 1}
+              {selected ? <Check className="h-3 w-3 stroke-[3]" /> : `0${i + 1}`}
             </span>
-            <span className="flex-1 text-sm md:text-base font-bold leading-snug">
+            <span className={`flex-1 text-sm md:text-base leading-relaxed ${selected ? 'font-semibold text-black' : 'font-normal'}`}>
               {o.label}
             </span>
           </button>

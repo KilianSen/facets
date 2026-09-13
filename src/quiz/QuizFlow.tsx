@@ -1,21 +1,21 @@
 import { useEffect, useRef } from 'react'
-import { ChevronLeft, Sparkles, Send } from 'lucide-react'
+import { ChevronLeft, Send } from 'lucide-react'
 import type { Answer, Question } from '../engine/types'
 import { useQuizState } from './useQuizState'
 import { QuestionCard } from './QuestionCard'
 import { ScenarioCard } from './ScenarioCard'
 import { Reveal } from '../ui/Reveal'
 
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2'
+const ring = 'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-black'
 
 function getCheerleading(index: number, total: number) {
   const pct = index / total
-  if (pct === 0) return 'Find your vibe ✨'
-  if (pct < 0.25) return 'Warming up 🔥'
-  if (pct < 0.5) return 'Bold moves… 👀'
-  if (pct < 0.75) return 'Pattern locked 🧬'
-  if (pct < 1) return 'Almost there 🎯'
-  return 'Final stretch 🎉'
+  if (pct === 0) return 'Calibrating…'
+  if (pct < 0.25) return 'Warming up'
+  if (pct < 0.5) return 'Building signal'
+  if (pct < 0.75) return 'Pattern locked'
+  if (pct < 1) return 'Near convergence'
+  return 'Final stretch'
 }
 
 export function QuizFlow({
@@ -91,9 +91,9 @@ export function QuizFlow({
   const containerW = state.phase === 'depends' ? 'md:max-w-2xl' : 'md:max-w-xl'
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0d0c14] text-white">
-      {/* 1. Header with Solid Neo-Brutalist Pill Progress */}
-      <header className="sticky top-0 z-20 border-b-2 border-white/10 bg-[#0d0c14]/95 backdrop-blur-md">
+    <div className="flex min-h-screen flex-col bg-[#0b0c15] text-white">
+      {/* 1. Header with Brutal Minimalist Progress */}
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0b0c15]/95 backdrop-blur-md">
         <div className={`mx-auto flex w-full max-w-md ${containerW} flex-col gap-3 px-5 py-4`}>
           <div className="flex items-center justify-between">
             {/* Back Button */}
@@ -101,39 +101,36 @@ export function QuizFlow({
               type="button"
               onClick={() => dispatch({ type: 'GO_BACK' })}
               disabled={state.index <= minIndex}
-              className={`flex items-center gap-1 rounded-xl py-1.5 px-3 text-xs font-black uppercase tracking-wider text-white bg-white/10 border-2 border-white/20 transition-all enabled:hover:bg-white/20 enabled:hover:border-white disabled:opacity-0 ${ring}`}
+              className={`flex items-center gap-1.5 rounded-lg py-1.5 px-3 font-mono text-xs uppercase tracking-wider text-neutral-400 hover:text-white bg-white/[0.03] border border-white/15 hover:border-white/30 transition-all disabled:opacity-0 ${ring}`}
             >
-              <ChevronLeft className="h-3.5 w-3.5 stroke-[3]" />
+              <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>Back</span>
             </button>
 
-            {/* Persona Stamp */}
+            {/* Question Counter (preserves exact text Question X of Y for tests) */}
             <div className="flex items-center gap-2">
-              <span className="bg-pop-yellow text-slate-950 font-black uppercase text-[10px] tracking-widest px-2.5 py-1 rounded-md border-2 border-slate-950 shadow-[2px_2px_0px_#000]">
-                Vibe Check
-              </span>
-              <span className="text-xs font-black font-mono text-white/90">
+              <span className="font-mono text-xs uppercase tracking-wider text-neutral-300">
                 Question {state.index + 1} of {total}
               </span>
             </div>
 
-            {/* Cheerleading Status Pill */}
-            <span className="hidden sm:inline-block text-[11px] font-black uppercase tracking-wider text-slate-950 bg-white px-2.5 py-1 rounded-md border-2 border-slate-950 shadow-[2px_2px_0px_#000]">
+            {/* Cheerleading Status */}
+            <span className="hidden sm:inline-block font-mono text-[11px] uppercase tracking-wider text-neutral-400">
               {getCheerleading(state.index, total)}
             </span>
           </div>
 
-          {/* Solid 2px-Bordered Progress Bar */}
+          {/* Razor-Thin Minimalist Progress Bar */}
           <div
             role="progressbar"
             aria-label="Quiz progress"
             aria-valuemin={0}
             aria-valuemax={total}
             aria-valuenow={state.index}
-            className="h-2 w-full overflow-hidden rounded-full bg-slate-900 border-2 border-slate-700"
+            className="h-1 w-full overflow-hidden rounded-full bg-white/10"
           >
             <div
-              className="h-full bg-pop-yellow transition-[width] duration-300"
+              className="h-full bg-white transition-[width] duration-300 ease-out"
               style={{ width: `${Math.max(5, (state.index / total) * 100)}%` }}
             />
           </div>
@@ -156,21 +153,19 @@ export function QuizFlow({
 
             {state.phase === 'depends' && current.cases && (
               <>
-                {/* Physical Editorial Dilemma Prompt Card */}
-                <div className="rounded-[32px] bg-bone text-slate-900 p-6 md:p-8 border-3 border-slate-950 shadow-[6px_6px_0px_#000] flex flex-col gap-4 transition-all">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 bg-coral text-white font-black uppercase text-[10px] tracking-widest px-2.5 py-1 rounded-md border-2 border-slate-950 shadow-[2px_2px_0px_#000]">
-                      <Sparkles className="h-3 w-3" />
-                      <span>The Dilemma</span>
+                {/* Refined Dilemma Prompt Card */}
+                <div className="rounded-2xl border border-white/10 bg-[#111114] p-6 md:p-8 flex flex-col gap-4 shadow-sm">
+                  <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-widest text-neutral-400">
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                      <span>The Dilemma // Context Breakdown</span>
                     </span>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      Context Switcher
-                    </span>
+                    <span className="text-neutral-500">Multi-facet</span>
                   </div>
                   <h2
                     ref={headingRef}
                     tabIndex={-1}
-                    className="font-editorial text-2xl md:text-3xl font-bold leading-snug text-slate-950 focus-visible:outline-none"
+                    className="font-editorial text-xl md:text-2xl font-normal leading-relaxed text-neutral-100 focus-visible:outline-none"
                   >
                     {current.prompt}
                   </h2>
@@ -195,7 +190,7 @@ export function QuizFlow({
       {/* 3. Footer for Depends Phase */}
       {state.phase === 'depends' && current.cases && (
         <footer
-          className="sticky bottom-0 z-20 border-t-2 border-white/10 bg-[#0d0c14]/95 backdrop-blur-md"
+          className="sticky bottom-0 z-20 border-t border-white/10 bg-[#0b0c15]/95 backdrop-blur-md"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className={`mx-auto flex w-full max-w-md ${containerW} items-center justify-between gap-3 px-5 py-4`}>
@@ -203,12 +198,12 @@ export function QuizFlow({
               <button
                 type="button"
                 onClick={() => dispatch({ type: 'CANCEL_DEPENDS' })}
-                className={`rounded-xl px-3 py-1.5 text-xs font-bold text-white/60 transition-colors hover:text-white hover:bg-white/10 ${ring}`}
+                className={`font-mono text-xs uppercase tracking-wider text-neutral-400 hover:text-white transition-colors ${ring}`}
               >
-                ← Just give one answer
+                ← Single response
               </button>
             ) : (
-              <span className="hidden text-xs font-bold text-white/40 [@media(pointer:fine)]:inline font-mono">
+              <span className="hidden text-xs font-mono uppercase tracking-wider text-neutral-400 [@media(pointer:fine)]:inline">
                 Press ⏎ when all contexts mapped
               </span>
             )}
@@ -218,10 +213,10 @@ export function QuizFlow({
               type="button"
               onClick={commit}
               disabled={!state.canCommit}
-              className={`group flex items-center gap-2 rounded-2xl bg-pop-yellow text-slate-950 font-black uppercase tracking-wider text-sm px-7 py-3.5 border-2 border-slate-950 transition-all duration-150 enabled:shadow-[4px_4px_0px_#000] enabled:hover:translate-x-[-1px] enabled:hover:translate-y-[-1px] enabled:hover:shadow-[5px_5px_0px_#000] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed ${ring}`}
+              className={`flex items-center gap-2 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-widest px-6 py-3 border border-white transition-all enabled:hover:bg-neutral-200 active:scale-[0.99] disabled:opacity-30 disabled:cursor-not-allowed ${ring}`}
             >
               <span>Continue</span>
-              <Send className="h-4 w-4 stroke-[2.5]" />
+              <Send className="h-3.5 w-3.5 stroke-[2.5]" />
             </button>
           </div>
         </footer>

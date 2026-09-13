@@ -88,59 +88,54 @@ export function QuizFlow({
   const current = questions[state.index]
   if (!current) return null
   const total = questions.length
-  const containerW = state.phase === 'depends' ? 'md:max-w-2xl' : 'md:max-w-xl'
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0b0c15] text-white">
-      {/* 1. Header with Brutal Minimalist Progress */}
+      {/* 1. Compact Header with Hairline Progress */}
       <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0b0c15]/95 backdrop-blur-md">
-        <div className={`mx-auto flex w-full max-w-md ${containerW} flex-col gap-3 px-5 py-4`}>
-          <div className="flex items-center justify-between">
-            {/* Back Button */}
-            <button
-              type="button"
-              onClick={() => dispatch({ type: 'GO_BACK' })}
-              disabled={state.index <= minIndex}
-              className={`flex items-center gap-1.5 rounded-lg py-1.5 px-3 font-mono text-xs uppercase tracking-wider text-neutral-400 hover:text-white bg-white/[0.03] border border-white/15 hover:border-white/30 transition-all disabled:opacity-0 ${ring}`}
-            >
-              <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
-              <span>Back</span>
-            </button>
-
-            {/* Question Counter (preserves exact text Question X of Y for tests) */}
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs uppercase tracking-wider text-neutral-300">
-                Question {state.index + 1} of {total}
-              </span>
-            </div>
-
-            {/* Cheerleading Status */}
-            <span className="hidden sm:inline-block font-mono text-[11px] uppercase tracking-wider text-neutral-400">
-              {getCheerleading(state.index, total)}
-            </span>
-          </div>
-
-          {/* Razor-Thin Minimalist Progress Bar */}
-          <div
-            role="progressbar"
-            aria-label="Quiz progress"
-            aria-valuemin={0}
-            aria-valuemax={total}
-            aria-valuenow={state.index}
-            className="h-1 w-full overflow-hidden rounded-full bg-white/10"
+        <div className="mx-auto flex w-full max-w-lg items-center justify-between px-4 py-2.5">
+          {/* Back Button */}
+          <button
+            type="button"
+            onClick={() => dispatch({ type: 'GO_BACK' })}
+            disabled={state.index <= minIndex}
+            className={`flex items-center gap-1 rounded-md py-1 px-2.5 font-mono text-xs uppercase tracking-wider text-neutral-400 hover:text-white bg-white/[0.03] border border-white/15 hover:border-white/30 transition-all disabled:opacity-0 ${ring}`}
           >
-            <div
-              className="h-full bg-white transition-[width] duration-300 ease-out"
-              style={{ width: `${Math.max(5, (state.index / total) * 100)}%` }}
-            />
-          </div>
+            <ChevronLeft className="h-3.5 w-3.5 stroke-[2.5]" />
+            <span>Back</span>
+          </button>
+
+          {/* Question Counter (preserves exact text Question X of Y for tests) */}
+          <span className="font-mono text-xs uppercase tracking-wider text-neutral-300">
+            Question {state.index + 1} of {total}
+          </span>
+
+          {/* Cheerleading Status */}
+          <span className="hidden sm:inline-block font-mono text-[11px] uppercase tracking-wider text-neutral-400">
+            {getCheerleading(state.index, total)}
+          </span>
+        </div>
+
+        {/* Razor Hairline Progress Bar */}
+        <div
+          role="progressbar"
+          aria-label="Quiz progress"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={state.index}
+          className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/10"
+        >
+          <div
+            className="h-full bg-white transition-[width] duration-200 ease-out"
+            style={{ width: `${Math.max(5, (state.index / total) * 100)}%` }}
+          />
         </div>
       </header>
 
-      {/* 2. Main Question Card Viewport */}
+      {/* 2. Main Question Viewport */}
       <main className="flex flex-1 flex-col">
-        <div className={`mx-auto w-full max-w-md ${containerW} px-5 py-8`}>
-          <Reveal key={`q-${state.index}-${state.phase}`} className="flex flex-col gap-6">
+        <div className="mx-auto w-full max-w-lg px-4 py-4 md:py-6">
+          <Reveal key={`q-${state.index}-${state.phase}`} className="flex flex-col gap-4">
             {state.phase === 'single' && (
               <QuestionCard
                 question={current}
@@ -152,36 +147,17 @@ export function QuizFlow({
             )}
 
             {state.phase === 'depends' && current.cases && (
-              <>
-                {/* Refined Dilemma Prompt Card */}
-                <div className="rounded-2xl border border-white/10 bg-[#111114] p-6 md:p-8 flex flex-col gap-4 shadow-sm">
-                  <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-widest text-neutral-400">
-                    <span className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                      <span>The Dilemma // Context Breakdown</span>
-                    </span>
-                    <span className="text-neutral-500">Multi-facet</span>
-                  </div>
-                  <h2
-                    ref={headingRef}
-                    tabIndex={-1}
-                    className="font-editorial text-xl md:text-2xl font-normal leading-relaxed text-neutral-100 focus-visible:outline-none"
-                  >
-                    {current.prompt}
-                  </h2>
-                </div>
-
-                {/* Scenario Stepper Card */}
-                <ScenarioCard
-                  cases={current.cases}
-                  options={current.options}
-                  mapping={state.draftMapping}
-                  caseIndex={state.caseIndex}
-                  onMap={(caseId, optionId) => dispatch({ type: 'MAP_CASE', caseId, optionId })}
-                  onSetCaseIndex={caseIndex => dispatch({ type: 'SET_CASE_INDEX', caseIndex })}
-                  onFillAll={optionId => dispatch({ type: 'FILL_ALL', optionId })}
-                />
-              </>
+              <ScenarioCard
+                prompt={current.prompt}
+                headingRef={headingRef}
+                cases={current.cases}
+                options={current.options}
+                mapping={state.draftMapping}
+                caseIndex={state.caseIndex}
+                onMap={(caseId, optionId) => dispatch({ type: 'MAP_CASE', caseId, optionId })}
+                onSetCaseIndex={caseIndex => dispatch({ type: 'SET_CASE_INDEX', caseIndex })}
+                onFillAll={optionId => dispatch({ type: 'FILL_ALL', optionId })}
+              />
             )}
           </Reveal>
         </div>
@@ -193,7 +169,7 @@ export function QuizFlow({
           className="sticky bottom-0 z-20 border-t border-white/10 bg-[#0b0c15]/95 backdrop-blur-md"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          <div className={`mx-auto flex w-full max-w-md ${containerW} items-center justify-between gap-3 px-5 py-4`}>
+          <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-4 py-2.5">
             {current.kind === 'flavor' ? (
               <button
                 type="button"
@@ -213,7 +189,7 @@ export function QuizFlow({
               type="button"
               onClick={commit}
               disabled={!state.canCommit}
-              className={`flex items-center gap-2 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-widest px-6 py-3 border border-white transition-all enabled:hover:bg-neutral-200 active:scale-[0.99] disabled:opacity-30 disabled:cursor-not-allowed ${ring}`}
+              className={`flex items-center gap-1.5 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-widest px-5 py-2 border border-white transition-all enabled:hover:bg-neutral-200 active:scale-[0.99] disabled:opacity-30 disabled:cursor-not-allowed ${ring}`}
             >
               <span>Continue</span>
               <Send className="h-3.5 w-3.5 stroke-[2.5]" />

@@ -15,7 +15,7 @@ export function OptionList({
   onSelect: (optionId: string) => void
 }) {
   return (
-    <div role="group" aria-labelledby={labelledById} className="flex flex-col gap-2.5">
+    <div role="group" aria-labelledby={labelledById} className="flex flex-col gap-2">
       {options.map((o, i) => {
         const selected = selectedId === o.id
         return (
@@ -24,7 +24,7 @@ export function OptionList({
             type="button"
             aria-current={selected || undefined}
             onClick={() => onSelect(o.id)}
-            className={`group relative flex w-full items-start gap-4 rounded-xl px-4 py-3.5 text-left transition-all duration-150 border ${ring} ${
+            className={`group relative flex w-full items-start gap-3 rounded-lg px-3.5 py-2.5 sm:py-3 text-left transition-all duration-150 border ${ring} ${
               selected
                 ? 'bg-white text-black border-white shadow-sm'
                 : 'bg-white/[0.02] text-neutral-300 border-white/10 hover:border-white/30 hover:bg-white/[0.05] hover:text-white'
@@ -40,7 +40,7 @@ export function OptionList({
             >
               {selected ? <Check className="h-3 w-3 stroke-[3]" /> : `0${i + 1}`}
             </span>
-            <span className={`flex-1 text-sm md:text-base leading-relaxed ${selected ? 'font-semibold text-black' : 'font-normal'}`}>
+            <span className={`flex-1 text-sm sm:text-base leading-snug sm:leading-relaxed ${selected ? 'font-semibold text-black' : 'font-normal'}`}>
               {o.label}
             </span>
           </button>

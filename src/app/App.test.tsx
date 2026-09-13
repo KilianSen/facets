@@ -6,7 +6,8 @@ import { STORAGE_KEY } from '../quiz/useQuizState'
 import { computeProfile } from '../engine'
 import { CONTENT } from '../content'
 import { selectQuestions } from '../content/selectQuestions'
-import { encodeAnswers } from '../share/permalink'
+import { encodeAnswers, decodeAnswers } from '../share/permalink'
+import { savePending, PENDING_COMPARE_KEY } from '../compare/compareLink'
 import type { Answer, Question } from '../engine/types'
 
 const DIMS = CONTENT.dims.map(d => d.id)
@@ -36,11 +37,18 @@ function seedSwingRunAtLastQuestion(): Question[] {
   return qs
 }
 
-// Click through whatever screen is showing (depends groups, single options, or the sharpen prompt)
-// until the result appears. `onPrompt` decides what to do when the sharpen prompt shows up.
-async function driveToResult(onPrompt: 'sharpen' | 'skip') {
+// Click through whatever screen is showing (depends groups, single options, the "why" beat, or the
+// sharpen prompt) until the result appears. `onPrompt` decides the sharpen prompt; `why` the motive beat.
+async function driveToResult(onPrompt: 'sharpen' | 'skip', why: 'answer' | 'skip' = 'skip') {
   for (let i = 0; i < 50; i++) {
     if (screen.queryByText('Take it again')) return
+    const whySkip = screen.queryByRole('button', { name: 'Not sure — skip' })
+    if (whySkip) {
+      await userEvent.click(why === 'skip'
+        ? whySkip
+        : within(screen.getByRole('list', { name: 'Possible reasons' })).getAllByRole('button')[0])
+      continue
+    }
     const promptBtn = screen.queryByRole('button', { name: onPrompt === 'sharpen' ? /Pin down my/ : /Skip to my results/ })
     if (promptBtn) { await userEvent.click(promptBtn); continue }
     if (screen.queryByRole('button', { name: 'Continue' })) {
@@ -65,7 +73,10 @@ describe('App', () => {
 
   it('shows the landing page with both run modes', () => {
     render(<App />)
-    expect(screen.getAllByText(/it depends/i).length).toBeGreaterThan(0) // the landing leans on the theme
+    // The landing now leads on the no-gatekeeping promise (you get your result, no email/signup)...
+    expect(screen.getAllByText(/no email/i).length).toBeGreaterThan(0)
+    // ...with "it depends" kept as the secondary "what makes it different" section.
+    expect(screen.getAllByText(/it depends/i).length).toBeGreaterThan(0)
     expect(screen.getByText('Quick read')).toBeInTheDocument()
     expect(screen.getByText('Deep dive')).toBeInTheDocument()
   })
@@ -132,6 +143,42 @@ describe('App', () => {
     // The deep-dive payoff is shown (radio[0]-per-case ⇒ consistent answers ⇒ a "solid" read).
     expect(screen.getByText('Your deep-dive')).toBeInTheDocument()
     expect(screen.getByText(/rock-solid read/)).toBeInTheDocument()
+  })
+
+  it('asks what is behind the biggest swings, and the result names the motive', async () => {
+    seedSwingRunAtLastQuestion()
+    render(<App />)
+    await userEvent.click(screen.getByText(/Continue your run/))
+    await driveToResult('skip', 'answer')
+    expect(await screen.findByText('Take it again', {}, { timeout: 2000 })).toBeInTheDocument()
+    expect(screen.getByText('What’s behind it')).toBeInTheDocument()
+    // The motive rides in the persisted answers (so permalinks and compares carry it)…
+    const stored = JSON.parse(localStorage.getItem(RESULT_STORAGE_KEY)!)
+    expect(stored.answers.some((a: Answer) => a.questionId.startsWith('why_'))).toBe(true)
+    // …without changing who you are.
+    const measured = stored.answers.filter((a: Answer) => !a.questionId.startsWith('why_'))
+    expect(stored.profile.archetype.id).toBe(computeProfile(measured, CONTENT).archetype.id)
+  })
+
+  it('shows a pending compare invite on the landing page', () => {
+    savePending({ a: encodeAnswers([{ questionId: 'closeness_1', mode: 'single', optionId: 'A' }]), an: 'Sam' })
+    render(<App />)
+    expect(screen.getByText(/Sam invited you to compare/)).toBeInTheDocument()
+  })
+
+  it('answers a pending invite: the result opens the side-by-side with both answer sets', async () => {
+    const inviter: Answer[] = [{ questionId: 'closeness_1', mode: 'single', optionId: 'A' }]
+    const mine: Answer[] = [{ questionId: 'stakes_1', mode: 'single', optionId: 'A' }]
+    savePending({ a: encodeAnswers(inviter), an: 'Sam' })
+    localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify({ profile: computeProfile(mine, CONTENT), answers: mine }))
+    render(<App />)
+    await userEvent.click(screen.getByRole('button', { name: /compare with Sam/ }))
+    expect(window.location.pathname).toBe('/compare')
+    const q = new URLSearchParams(window.location.search)
+    expect(decodeAnswers(q.get('a')!)).toEqual(inviter)
+    expect(decodeAnswers(q.get('b')!)).toEqual(mine)
+    expect(q.get('an')).toBe('Sam')
+    expect(localStorage.getItem(PENDING_COMPARE_KEY)).toBeNull()
   })
 
   it('restores a result from a #r= permalink, taking precedence over a cached result', () => {

@@ -29,7 +29,7 @@ describe('matchArchetype', () => {
         { id: 'second', code: 'S', name: 'Second', tagline: '', copy: '', signature: {} },
       ],
     }
-    const flat: Signature = { closeness: { warmth: { slope: 0, levels: [] }, approach: { slope: 0, levels: [] } } }
+    const flat: Signature = { closeness: { warmth: { slope: 0, curvature: 0, levels: [] }, approach: { slope: 0, curvature: 0, levels: [] } } }
     expect(matchArchetype(flat, {}, tied).id).toBe('first')
   })
 

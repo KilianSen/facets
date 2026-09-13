@@ -1,20 +1,24 @@
 import { useState, useEffect } from 'react'
 import {
   computeProfile, sharpenReadout, sharpenConfident, SWING_THRESHOLD, SHARPEN_MIN,
+  motiveAxes, motiveQuestionId, strongestTell,
   type Answer, type Profile, type Question,
 } from '../engine'
 import { CONTENT } from '../content'
 import { selectQuestions, pickSharpenQuestions, type RunMode } from '../content/selectQuestions'
 import { QuizFlow } from '../quiz/QuizFlow'
 import { SharpenPrompt } from '../quiz/SharpenPrompt'
+import { MotivePrompt, type MotivePick } from '../quiz/MotivePrompt'
 import { ResultPage } from '../result/ResultPage'
 import { STORAGE_KEY, loadProgress, type StoredProgress } from '../quiz/useQuizState'
-import { decodeAnswers } from '../share/permalink'
+import { decodeAnswers, encodeAnswers } from '../share/permalink'
 import { LandingPage } from '../archetypes/LandingPage'
+import { loadPending, clearPending, compareUrl } from '../compare/compareLink'
+import { navigate } from '../router/router'
 
 export const RESULT_STORAGE_KEY = 'fptic.result.v1'
 
-type View = 'landing' | 'quiz' | 'sharpen' | 'computing' | 'result'
+type View = 'landing' | 'quiz' | 'motives' | 'sharpen' | 'computing' | 'result'
 
 /** Reserve (sharpen) questions already appended to the running list, if any (single axis by design). */
 function reserveInRun(questions: Question[]): { axisId: string; askedIds: string[] } | null {
@@ -38,8 +42,13 @@ function topSwingAxis(profile: Profile): string | null {
   return best
 }
 
+const isMotiveAnswer = (a: Answer) => CONTENT.axes.some(ax => a.questionId === motiveQuestionId(ax.id))
 
 interface CachedResult { profile: Profile; answers: Answer[] }
+
+function saveResult(profile: Profile, answers: Answer[]): void {
+  try { localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify({ profile, answers })) } catch { /* ignore */ }
+}
 
 function loadResult(): CachedResult | null {
   try {
@@ -95,6 +104,9 @@ export function App() {
   // Bumped to force a fresh QuizFlow when we append parallel sharpen items and re-enter the quiz.
   const [quizKey, setQuizKey] = useState(0)
   const [offerAxis, setOfferAxis] = useState<string | null>(null)
+  const [whyAxes, setWhyAxes] = useState<string[]>([])
+  // Someone's compare invite this browser is answering (set from /compare before taking the test).
+  const [pending] = useState(() => loadPending())
 
   function start(mode: RunMode) {
     clearStored()
@@ -121,9 +133,16 @@ export function App() {
     setView('quiz')
   }
 
+  // After the base run (and the optional "why" beat): offer to sharpen the single strongest swing axis.
+  function offerSharpenOrFinish(computed: Profile) {
+    const axisId = topSwingAxis(computed)
+    if (axisId) { setOfferAxis(axisId); setView('sharpen'); return }
+    setView('computing')
+  }
+
   function handleComplete(a: Answer[]) {
     const computed = computeProfile(a, CONTENT)
-    try { localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify({ profile: computed, answers: a })) } catch { /* ignore */ }
+    saveResult(computed, a)
     setProfile(computed)
     setAnswers(a)
 
@@ -141,10 +160,24 @@ export function App() {
       return
     }
 
-    // Base run just finished — offer to sharpen the single strongest swing axis, if any stands out.
-    const axisId = topSwingAxis(computed)
-    if (axisId) { setOfferAxis(axisId); setView('sharpen'); return }
-    setView('computing')
+    // Base run just finished — ask what's behind the biggest swings (once), then the sharpen offer.
+    const why = a.some(isMotiveAnswer) ? [] : motiveAxes(computed.signature, CONTENT)
+    if (why.length > 0) { setWhyAxes(why); setView('motives'); return }
+    offerSharpenOrFinish(computed)
+  }
+
+  // Motive answers ride along in the answer list (so permalinks and compares carry them) but never
+  // feed the measurement, so the profile computed at the end of the base run stays valid.
+  function finishMotives(picks: MotivePick[]) {
+    const next: Answer[] = [
+      ...answers.filter(a => !isMotiveAnswer(a)),
+      ...picks.map((p): Answer => ({ questionId: motiveQuestionId(p.axisId), mode: 'single', optionId: p.motiveId })),
+    ]
+    setAnswers(next)
+    setWhyAxes([])
+    if (!profile) { setView('computing'); return }
+    saveResult(profile, next)
+    offerSharpenOrFinish(profile)
   }
 
   function beginSharpen() {
@@ -171,6 +204,12 @@ export function App() {
     setView('landing')
   }
 
+  function openComparison() {
+    if (!pending || answers.length === 0) return
+    clearPending()
+    navigate(compareUrl({ a: pending.a, an: pending.an, b: encodeAnswers(answers), bn: pending.bn }))
+  }
+
   // Brief "reading your signature" beat before results (result is already persisted, so a
   // refresh during the beat rehydrates straight to 'result').
   useEffect(() => {
@@ -184,6 +223,7 @@ export function App() {
     return (
       <LandingPage
         resume={inProgress ? { index: resume!.index, total: resume!.questionIds.length } : null}
+        invite={pending ? { name: pending.an } : null}
         onStart={start}
         onContinue={continueRun}
       />
@@ -195,6 +235,15 @@ export function App() {
     // them would leave the round latched to a now-stale axis).
     const firstReserve = questions.findIndex(q => q.reserve)
     return <QuizFlow key={quizKey} questions={questions} minIndex={firstReserve === -1 ? 0 : firstReserve} onComplete={handleComplete} />
+  }
+
+  if (view === 'motives' && profile) {
+    const steps = whyAxes.map(id => ({
+      axis: CONTENT.axes.find(a => a.id === id)!,
+      tell: strongestTell(profile.signature, id, CONTENT),
+      options: CONTENT.motives?.byAxis[id] ?? [],
+    }))
+    return <MotivePrompt steps={steps} onDone={finishMotives} />
   }
 
   if (view === 'sharpen' && offerAxis) {
@@ -219,5 +268,13 @@ export function App() {
     )
   }
 
-  return <ResultPage profile={profile!} content={CONTENT} answers={answers} onRestart={restart} />
+  return (
+    <ResultPage
+      profile={profile!}
+      content={CONTENT}
+      answers={answers}
+      onRestart={restart}
+      compareWith={pending && answers.length > 0 ? { name: pending.an, onOpen: openComparison } : undefined}
+    />
+  )
 }

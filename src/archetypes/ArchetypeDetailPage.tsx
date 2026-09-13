@@ -121,7 +121,7 @@ export function ArchetypeDetailPage({ id }: { id: string }) {
           <header className="flex flex-col gap-1">
             <h2 className="font-display text-2xl font-semibold text-white sm:text-3xl">How you shift</h2>
             <p className="text-sm leading-relaxed text-white/55">
-              Each dial below moves as the situation climbs from low to high — that slope <em>is</em> the type.
+              Each dial below moves as the situation climbs from low to high — that shift <em>is</em> the type.
             </p>
           </header>
           <SignatureGraph archetype={archetype} accent={accent} />
@@ -189,7 +189,7 @@ export function ArchetypeDetailPage({ id }: { id: string }) {
               <h2 className="font-display text-2xl font-semibold text-white sm:text-3xl">
                 Which one are you?
               </h2>
-              <p className="text-sm text-white/55">Set the context for each question and find your slope.</p>
+              <p className="text-sm text-white/55">Take the test and see how you actually show up.</p>
             </div>
             <Link
               to="/"

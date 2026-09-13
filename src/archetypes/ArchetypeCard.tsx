@@ -1,20 +1,11 @@
 import type { Archetype } from '../engine/types'
 import { Link } from '../router/router'
 import { accentOf } from './archetypeMeta'
-
-// The single strongest shift, as a compact rising/falling tick for the card preview.
-function topSlope(a: Archetype): number {
-  let best = 0
-  for (const dims of Object.values(a.signature)) {
-    for (const slope of Object.values(dims)) if (Math.abs(slope) > Math.abs(best)) best = slope
-  }
-  return best
-}
+import { Fingerprint, shiftsOf } from './Fingerprint'
 
 export function ArchetypeCard({ archetype }: { archetype: Archetype }) {
   const accent = accentOf(archetype.id)
-  const slope = topSlope(archetype)
-  const off = Math.max(-14, Math.min(14, slope * 4))
+  const shifts = shiftsOf(archetype)
 
   return (
     <Link
@@ -36,10 +27,9 @@ export function ArchetypeCard({ archetype }: { archetype: Archetype }) {
         >
           {archetype.code}
         </span>
-        <svg viewBox="0 0 44 24" className="h-5 w-11" aria-hidden="true">
-          <line x1="4" y1={12 + off} x2="40" y2={12 - off} stroke={accent} strokeWidth="2.5" strokeLinecap="round" />
-          <circle cx="40" cy={12 - off} r="3" fill={accent} />
-        </svg>
+        <span className="block h-6 w-12" aria-hidden="true">
+          <Fingerprint shifts={shifts} baseline={archetype.baseline ?? {}} accent={accent} variant="mini" uid={archetype.id} />
+        </span>
       </div>
       <div className="flex flex-col gap-1">
         <h3 className="font-display text-xl font-semibold leading-tight text-white">{archetype.name}</h3>

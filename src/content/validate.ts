@@ -30,6 +30,12 @@ export function validateContent(content: Content): string[] {
         if (!dimIds.has(dimId)) errors.push(`archetype "${a.id}" references unknown dim "${dimId}"`)
       }
     }
+    for (const axisId of Object.keys(a.curve ?? {})) {
+      if (!axisIds.has(axisId)) errors.push(`archetype "${a.id}" curve references unknown axis "${axisId}"`)
+      for (const dimId of Object.keys(a.curve![axisId])) {
+        if (!dimIds.has(dimId)) errors.push(`archetype "${a.id}" curve references unknown dim "${dimId}"`)
+      }
+    }
   }
 
   for (const axis of content.axes) {
@@ -46,6 +52,21 @@ export function validateContent(content: Content): string[] {
   }
   for (const [axisId, count] of reserveByAxis) {
     if (count < 2) errors.push(`axis "${axisId}" has only ${count} reserve question(s); need >= 2 for a verdict`)
+  }
+
+  // Motive invariants: every per-axis option names a real axis and a defined motive, and no axis
+  // offers the same motive twice (the answer stores the motive id, so duplicates would be ambiguous).
+  if (content.motives) {
+    const motiveIds = new Set(content.motives.motives.map(m => m.id))
+    for (const [axisId, options] of Object.entries(content.motives.byAxis)) {
+      if (!axisIds.has(axisId)) errors.push(`motives reference unknown axis "${axisId}"`)
+      const seen = new Set<string>()
+      for (const o of options) {
+        if (!motiveIds.has(o.motiveId)) errors.push(`axis "${axisId}" motive option references unknown motive "${o.motiveId}"`)
+        if (seen.has(o.motiveId)) errors.push(`axis "${axisId}" offers motive "${o.motiveId}" more than once`)
+        seen.add(o.motiveId)
+      }
+    }
   }
 
   return errors

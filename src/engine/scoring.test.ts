@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeProfile, describeContingency } from './scoring'
+import { computeProfile, describeContingency, describeCurvature } from './scoring'
 import { makeTestContent, vaultAnswer } from './testFixtures'
 import type { Answer } from './types'
 
@@ -13,6 +13,19 @@ describe('describeContingency', () => {
     const text = describeContingency('closeness', 'warmth', -2, makeTestContent())
     expect(text).toContain('someone close')
     expect(text).toContain('stay cool')
+  })
+})
+
+describe('describeCurvature', () => {
+  it('reads high-at-the-extremes for a U (positive curvature)', () => {
+    const text = describeCurvature('closeness', 'warmth', 2, makeTestContent())
+    expect(text).toContain('extremes')
+    expect(text).toContain('get warm') // dim.highLabel sits at the extremes
+  })
+  it('reads high-in-the-middle for an inverted-U (negative curvature)', () => {
+    const text = describeCurvature('closeness', 'warmth', -2, makeTestContent())
+    expect(text).toContain('middle')
+    expect(text).toContain('get warm') // dim.highLabel sits in the middle
   })
 })
 
@@ -48,5 +61,19 @@ describe('computeProfile', () => {
     }
     const p = computeProfile([reverse], content)
     expect(p.topContingencies.some(c => c.slope < 0)).toBe(true)
+  })
+
+  it('surfaces a both-ways curve contingency for a non-monotonic answer (not a slope tell)', () => {
+    // Inverted-U warmth: cold at both ends, warm in the middle. A slope-only model reports this flat;
+    // the curve contingency names it.
+    const invertedU: Answer = {
+      questionId: 'q_close', mode: 'depends',
+      ranking: ['c_best', 'c_mid', 'c_far'],
+      mapping: { c_best: 'C', c_mid: 'A', c_far: 'C' },
+    }
+    const p = computeProfile([invertedU], content)
+    const curve = p.topContingencies.find(c => c.kind === 'curve')
+    expect(curve).toBeDefined()
+    expect(curve!.text.toLowerCase()).toContain('extreme')
   })
 })

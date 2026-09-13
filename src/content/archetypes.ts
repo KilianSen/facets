@@ -130,6 +130,21 @@ export const ARCHETYPES: Archetype[] = [
     signature: { stakes: { directness: -3 }, power: { directness: -3 } },
     baseline: { directness: -1, composure: 0.5 },
   },
+  // ---------- non-monotonic / both-ways (curve, not slope) ----------
+  {
+    id: 'sweet_spot', code: 'SWEET', name: 'The Sweet Spot', tagline: 'peaks under medium pressure',
+    copy: 'Hand you a moderate challenge and you are calm, sharp, decisive. But too low and you switch off; too high and you crack. You run best on Goldilocks stakes — not nothing, not everything.',
+    signature: {},
+    curve: { stakes: { composure: -3, lead: -2, boldness: -2 } },
+    baseline: {},
+  },
+  {
+    id: 'small_room', code: 'ROOM', name: 'The Small Room', tagline: 'boldest with a few',
+    copy: 'A handful of people is your zone — you open all the way up. Alone you go quiet, and a big crowd shuts you back down again. You need some eyes on you, just not all of them.',
+    signature: {},
+    curve: { audience: { boldness: -3 } },
+    baseline: {},
+  },
   // ---------- flat ----------
   {
     id: 'constant', code: 'CONST', name: 'The Constant', tagline: 'same with everyone',

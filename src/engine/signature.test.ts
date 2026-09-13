@@ -32,7 +32,39 @@ describe('computeSignature', () => {
     const { signature, flexibility } = computeSignature(extractRules([constantAnswer], content), content)
     expect(signature.closeness.warmth.slope).toBe(0)
     expect(signature.closeness.approach.slope).toBe(0)
+    expect(signature.closeness.warmth.curvature).toBe(0)
     expect(flexibility).toBe(0)
+  })
+
+  it('reads curvature for a non-monotonic answer the slope alone misses', () => {
+    // Inverted-U warmth: cold at both ends, warm in the middle (concave) ⇒ negative curvature.
+    const invertedU: Answer = {
+      questionId: 'q_close', mode: 'depends', ranking: ['c_best', 'c_mid', 'c_far'],
+      mapping: { c_best: 'C', c_mid: 'A', c_far: 'C' },
+    }
+    // U warmth: warm at both ends, cold in the middle (convex) ⇒ positive curvature.
+    const uShape: Answer = {
+      questionId: 'q_close', mode: 'depends', ranking: ['c_best', 'c_mid', 'c_far'],
+      mapping: { c_best: 'A', c_mid: 'C', c_far: 'A' },
+    }
+    const inv = computeSignature(extractRules([invertedU], content), content).signature.closeness.warmth
+    const u = computeSignature(extractRules([uShape], content), content).signature.closeness.warmth
+    expect(inv.curvature).toBeLessThan(0)
+    expect(u.curvature).toBeGreaterThan(0)
+    // The blind spot: for a both-ways bend the curvature is the dominant signal — bigger than the
+    // residual slope that rank-weighting leaves behind, which is all the old model would have seen.
+    expect(Math.abs(inv.curvature)).toBeGreaterThan(Math.abs(inv.slope))
+  })
+
+  it('reads ~zero curvature for a clean linear answer', () => {
+    // approach runs A(+2)@1 → B(0)@0.5 → C(−2)@0: a straight line.
+    const linear: Answer = {
+      questionId: 'q_close', mode: 'depends', ranking: ['c_best', 'c_mid', 'c_far'],
+      mapping: { c_best: 'A', c_mid: 'B', c_far: 'C' },
+    }
+    const cell = computeSignature(extractRules([linear], content), content).signature.closeness.approach
+    expect(cell.slope).toBeGreaterThan(0)
+    expect(Math.abs(cell.curvature)).toBeLessThan(0.5)
   })
 
   it('ranking weight changes the slope when two cases share an axis level', () => {

@@ -45,7 +45,7 @@ describe('extractBaseline', () => {
 
 describe('baseline-aware matchArchetype', () => {
   it('disambiguates archetypes with identical slopes by the baseline (so single answers count)', () => {
-    const flat: Signature = { closeness: { warmth: { slope: 0, levels: [] } } }
+    const flat: Signature = { closeness: { warmth: { slope: 0, curvature: 0, levels: [] } } }
     expect(matchArchetype(flat, { warmth: 2 }, content()).id).toBe('warm_type')
     expect(matchArchetype(flat, { warmth: -2 }, content()).id).toBe('cool_type')
   })

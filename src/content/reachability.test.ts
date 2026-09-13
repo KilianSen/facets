@@ -24,16 +24,27 @@ function inCharacterAnswers(archetype: Archetype, questions: Question[]): Answer
   for (const q of questions) {
     if (q.kind === 'backbone' && q.cases && q.axis) {
       const axisSig = archetype.signature[q.axis] // Record<dim, slope> | undefined
+      const axisCurve = archetype.curve?.[q.axis] // Record<dim, curvature> | undefined — non-monotonic types
       const ranking = q.cases.map(c => c.id)
       const mapping: Record<string, string> = {}
       for (const c of q.cases) {
         let best = q.options[0]
-        if (axisSig) {
+        if (axisSig || axisCurve) {
+          // Slope wants the dim aligned with (level − 0.5); curvature wants it HIGH at the extremes and
+          // LOW in the middle (for +curve), so the synthesized answerer actually bends the right way.
+          const curveBasis = c.axisLevel === 0.5 ? -1 : 1
           let bestScore = -Infinity
           for (const opt of q.options) {
             let score = 0
-            for (const dim of Object.keys(axisSig)) {
-              score += Math.sign(axisSig[dim]) * (opt.vector[dim] ?? 0) * (c.axisLevel - 0.5)
+            if (axisSig) {
+              for (const dim of Object.keys(axisSig)) {
+                score += Math.sign(axisSig[dim]) * (opt.vector[dim] ?? 0) * (c.axisLevel - 0.5)
+              }
+            }
+            if (axisCurve) {
+              for (const dim of Object.keys(axisCurve)) {
+                score += Math.sign(axisCurve[dim]) * (opt.vector[dim] ?? 0) * curveBasis
+              }
             }
             if (score > bestScore) { bestScore = score; best = opt }
           }

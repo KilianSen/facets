@@ -37,14 +37,14 @@ function card(a: (typeof ARCHETYPES)[number]): El {
     backgroundImage:
       'radial-gradient(900px 900px at 8% -25%, rgba(34,211,238,0.28), transparent), radial-gradient(750px 750px at 120% 25%, rgba(217,70,239,0.24), transparent)',
   }, [
-    el('div', { fontSize: '26px', letterSpacing: '10px', color: '#67e8f9', marginBottom: '14px' }, 'FPTIC'),
+    el('div', { fontSize: '26px', letterSpacing: '10px', color: '#67e8f9', marginBottom: '14px' }, 'FACETS'),
     el('div', { fontSize: '34px', color: 'rgba(255,255,255,0.55)' }, 'You are'),
     el('div', { fontSize: '108px', lineHeight: '1', margin: '4px 0 22px' }, a.name),
     el('div', { alignItems: 'center', gap: '18px' }, [
       el('div', { fontSize: '26px', color: '#67e8f9', border: '2px solid rgba(34,211,238,0.45)', borderRadius: '999px', padding: '6px 20px' }, a.code),
       el('div', { fontSize: '32px', color: 'rgba(255,255,255,0.8)' }, a.tagline),
     ]),
-    el('div', { position: 'absolute', bottom: '60px', left: '80px', fontSize: '26px', color: 'rgba(255,255,255,0.5)' }, 'the personality test that lets you say “it depends”'),
+    el('div', { position: 'absolute', bottom: '60px', left: '80px', fontSize: '26px', color: 'rgba(255,255,255,0.5)' }, 'a personality test for everyone'),
   ])
 }
 
@@ -83,26 +83,44 @@ async function main() {
 
     const image = `${SITE_URL}/og/${a.id}.png`
     // Share/result unfurl page (/r/<id>) — boots the SPA result with per-archetype meta.
-    const shareHtml = injectMeta(template, { title: `I'm ${a.name} — FPTIC`, desc: a.copy, image, url: `${SITE_URL}/r/${a.id}` })
+    const shareHtml = injectMeta(template, { title: `I'm ${a.name} — Facets`, desc: a.copy, image, url: `${SITE_URL}/r/${a.id}` })
     mkdirSync(join(DIST, 'r', a.id), { recursive: true })
     writeFileSync(join(DIST, 'r', a.id, 'index.html'), shareHtml)
 
     // Browse/detail page (/archetypes/<id>) — the SPA archetype page, same OG card, browse-framed meta.
-    const detailHtml = injectMeta(template, { title: `${a.name} — FPTIC archetype`, desc: a.copy, image, url: `${SITE_URL}/archetypes/${a.id}` })
+    const detailHtml = injectMeta(template, { title: `${a.name} — Facets archetype`, desc: a.copy, image, url: `${SITE_URL}/archetypes/${a.id}` })
     mkdirSync(join(DIST, 'archetypes', a.id), { recursive: true })
     writeFileSync(join(DIST, 'archetypes', a.id, 'index.html'), detailHtml)
   }
 
   // Gallery index (/archetypes).
   const galleryHtml = injectMeta(template, {
-    title: 'The 20 FPTIC archetypes',
-    desc: 'Every way people shift across situations — closeness, audience, stakes, power, initiative, energy. The FPTIC field guide.',
+    title: 'The 22 Facets archetypes',
+    desc: 'Every way people shift across situations — closeness, audience, stakes, power, initiative, energy. The Facets field guide.',
     url: `${SITE_URL}/archetypes`,
   })
   mkdirSync(join(DIST, 'archetypes'), { recursive: true })
   writeFileSync(join(DIST, 'archetypes', 'index.html'), galleryHtml)
 
-  console.log(`gen-share: wrote ${ARCHETYPES.length} OG cards + share/detail pages + gallery${SITE_URL ? ` (SITE_URL=${SITE_URL})` : ' (relative URLs)'}`)
+  // Method explainer (/method) — static shell so the page deep-links and unfurls.
+  const methodHtml = injectMeta(template, {
+    title: 'How Facets works — the method',
+    desc: 'How Facets measures you: say “it depends”, map your move across each situation, and we fit the slope. The shape of how you shift becomes your signature.',
+    url: `${SITE_URL}/method`,
+  })
+  mkdirSync(join(DIST, 'method'), { recursive: true })
+  writeFileSync(join(DIST, 'method', 'index.html'), methodHtml)
+
+  // Compare invite / side-by-side (/compare?a=…&b=…) — both answer sets live in the query string.
+  const compareHtml = injectMeta(template, {
+    title: 'How do we compare? — Facets',
+    desc: 'Take Facets and line your signatures up: where you click, where you clash, and each other’s blind spots.',
+    url: `${SITE_URL}/compare`,
+  })
+  mkdirSync(join(DIST, 'compare'), { recursive: true })
+  writeFileSync(join(DIST, 'compare', 'index.html'), compareHtml)
+
+  console.log(`gen-share: wrote ${ARCHETYPES.length} OG cards + share/detail pages + gallery + method + compare${SITE_URL ? ` (SITE_URL=${SITE_URL})` : ' (relative URLs)'}`)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })

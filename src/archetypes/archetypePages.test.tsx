@@ -27,6 +27,12 @@ describe('routing (Root)', () => {
     render(<Root />)
     expect(screen.getByRole('heading', { name: 'The Performer', level: 1 })).toBeInTheDocument()
   })
+
+  it('renders the method explainer at /method', () => {
+    window.history.replaceState(null, '', '/method')
+    render(<Root />)
+    expect(screen.getByRole('heading', { name: /how facets/i, level: 1 })).toBeInTheDocument()
+  })
 })
 
 describe('ArchetypesPage', () => {

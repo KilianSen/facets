@@ -8,6 +8,14 @@ import { type Content, type Signature, type ArchetypeMatch, type DimId } from '.
  */
 export const BASELINE_WEIGHT = 0.25
 
+/**
+ * How much a curvature mismatch weighs vs the linear-slope match. Kept modest (like BASELINE_WEIGHT)
+ * so the slope stays the primary signal for the monotonic majority, while still being decisive enough
+ * to pull a genuinely non-monotonic answerer onto a "both ways" archetype rather than the nearest
+ * slope/constant. Calibrated against the reachability + separation gates.
+ */
+export const CURVE_WEIGHT = 0.35
+
 /** Euclidean distance between a user signature and a prototype signature over all axis×dim slopes. */
 export function signatureDistance(
   sig: Signature,
@@ -21,6 +29,25 @@ export function signatureDistance(
       const userSlope = sig[axis.id]?.[dim.id]?.slope ?? 0
       const protoSlope = protoAxis[dim.id] ?? 0
       const d = userSlope - protoSlope
+      sum += d * d
+    }
+  }
+  return Math.sqrt(sum)
+}
+
+/** Euclidean distance between a user signature's curvature and a prototype's `curve` over all axis×dim. */
+export function curvatureDistance(
+  sig: Signature,
+  protoCurve: Record<string, Record<string, number>> | undefined,
+  content: Content,
+): number {
+  let sum = 0
+  for (const axis of content.axes) {
+    const protoAxis = protoCurve?.[axis.id] ?? {}
+    for (const dim of content.dims) {
+      const userCurve = sig[axis.id]?.[dim.id]?.curvature ?? 0
+      const protoC = protoAxis[dim.id] ?? 0
+      const d = userCurve - protoC
       sum += d * d
     }
   }
@@ -51,7 +78,9 @@ export function matchArchetype(
   const scored = content.archetypes.map((a, idx) => ({
     id: a.id,
     idx,
-    dist: signatureDistance(sig, a.signature, content) + BASELINE_WEIGHT * baselineDistance(baseline, a.baseline, content),
+    dist: signatureDistance(sig, a.signature, content)
+      + CURVE_WEIGHT * curvatureDistance(sig, a.curve, content)
+      + BASELINE_WEIGHT * baselineDistance(baseline, a.baseline, content),
   }))
   scored.sort((a, b) => a.dist - b.dist || a.idx - b.idx) // nearest; tiebreak by catalog order
 

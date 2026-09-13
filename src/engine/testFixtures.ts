@@ -1,4 +1,21 @@
-import type { Content, Answer } from './types'
+import type { Content, Answer, Signature } from './types'
+
+/**
+ * Build a full Signature over `content` from sparse `{ axis: { dim: slope | [slope, curvature] } }`,
+ * zero-filling every other cell. Every axis gets three levels so the evidence gate counts it measured.
+ */
+export function sigFrom(content: Content, cells: Record<string, Record<string, number | [number, number]>>): Signature {
+  const sig: Signature = {}
+  for (const axis of content.axes) {
+    sig[axis.id] = {}
+    for (const dim of content.dims) {
+      const v = cells[axis.id]?.[dim.id] ?? 0
+      const [slope, curvature] = typeof v === 'number' ? [v, 0] : v
+      sig[axis.id][dim.id] = { slope, curvature, levels: [0, 0.5, 1].map(level => ({ level, value: 0 })) }
+    }
+  }
+  return sig
+}
 
 // Tiny content: 1 axis (closeness), 2 dims (warmth, approach), 1 backbone question, 2 archetypes.
 export function makeTestContent(): Content {

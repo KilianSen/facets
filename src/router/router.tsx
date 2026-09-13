@@ -25,6 +25,11 @@ export function usePath(): string {
   return useSyncExternalStore(subscribe, () => window.location.pathname, () => '/')
 }
 
+/** The current query string — for pages whose state lives in it (a same-path navigate changes only this). */
+export function useSearch(): string {
+  return useSyncExternalStore(subscribe, () => window.location.search, () => '')
+}
+
 export function Link({
   to, children, ...rest
 }: { to: string; children: ReactNode } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>) {

@@ -42,7 +42,16 @@ export function computeSignature(rules: Rule[], content: Content): { signature: 
         .map(([level, e]) => ({ level, value: e.sw ? e.swy / e.sw : 0 }))
         .sort((a, b) => a.level - b.level)
 
-      const cell: AxisDimCell = { slope, levels }
+      // Curvature = the quadratic bend across the three canonical levels, orthogonal to the slope:
+      // (value@0 + value@1 − 2·value@0.5) / 2. Captures a consistent "both ways" shape (e.g. an
+      // inverted-U) that the linear slope alone reads as flat. 0 if a level is missing.
+      const byX = new Map(levels.map(l => [l.level, l.value]))
+      const v0 = byX.get(0), vMid = byX.get(0.5), v1 = byX.get(1)
+      const curvature = v0 !== undefined && vMid !== undefined && v1 !== undefined
+        ? (v0 + v1 - 2 * vMid) / 2
+        : 0
+
+      const cell: AxisDimCell = { slope, curvature, levels }
       signature[axis.id][dim.id] = cell
       if (points.length > 0) slopeMagnitudes.push(Math.abs(slope))
     }

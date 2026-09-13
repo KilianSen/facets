@@ -16,7 +16,7 @@ export function ArchetypesPage() {
             to="/"
             className={`rounded text-sm font-medium tracking-wide text-white/60 transition-colors hover:text-white ${ring}`}
           >
-            <span aria-hidden="true">←</span> FPTIC
+            <span aria-hidden="true">←</span> Facets
           </Link>
           <Link
             to="/"
@@ -34,7 +34,7 @@ export function ArchetypesPage() {
         </Reveal>
         <Reveal delay={0.06}>
           <h1 className="mt-4 max-w-3xl font-display text-5xl font-bold leading-[1.02] sm:text-6xl">
-            20 ways
+            22 ways
             <br className="hidden sm:block" /> people shift
           </h1>
         </Reveal>
@@ -43,7 +43,7 @@ export function ArchetypesPage() {
             These are the archetypes. Each one is a <span className="text-white/90">pattern of how someone
             changes</span> as a single situation rises — closeness, audience, stakes, power, initiative, or
             energy — plus the shape-shifters who pivot on more than one, and the constant who barely moves at
-            all. Nobody is one box. This is the shape of your "it depends."
+            all. Nobody is one box. This is the shape of how you actually shift.
           </p>
         </Reveal>
 

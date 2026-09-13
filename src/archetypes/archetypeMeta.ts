@@ -5,7 +5,7 @@ import { ARCHETYPES } from '../content/archetypes'
  * Presentation metadata for the archetype browse pages. Archetypes are organised into the situation
  * "lens" they pivot on (the axis their signature lives on), plus two cross-axis groups and the flat
  * one. Each group gets a signature hue — jewel tones on ink, cohesive with the cyan↔fuchsia brand —
- * so the gallery reads as an organised spectrum rather than 20 undifferentiated tiles.
+ * so the gallery reads as an organised spectrum rather than 22 undifferentiated tiles.
  */
 export interface ArchetypeGroup {
   id: string
@@ -53,6 +53,11 @@ export const ARCHETYPE_GROUPS: ArchetypeGroup[] = [
     id: 'cross', label: 'Shape-shifters', spectrum: 'many axes at once',
     blurb: 'The ones who pivot on more than one thing.',
     accent: '#a78bfa', archetypeIds: ['chameleon', 'diplomat'],
+  },
+  {
+    id: 'curve', label: 'Both-ways', spectrum: 'low → middle → high',
+    blurb: 'Non-monotonic types — strongest in the middle, not at one end.',
+    accent: '#5eead4', archetypeIds: ['sweet_spot', 'small_room'],
   },
   {
     id: 'constant', label: 'The Constant', spectrum: 'context barely moves them',

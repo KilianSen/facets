@@ -10,51 +10,76 @@ const ring =
 // a spread of different "shapes" rather than four neighbours from one cluster.
 const TEASER = ARCHETYPES_IN_ORDER.filter((_, i) => i % 3 === 0).slice(0, 6)
 
-// A tiny rising/falling tick — the "it depends" slope motif, reused as the step glyphs.
-function Tick({ slope, accent }: { slope: number; accent: string }) {
-  const off = Math.max(-10, Math.min(10, slope * 5))
-  return (
-    <svg viewBox="0 0 40 24" className="h-6 w-10" aria-hidden="true">
-      <line x1="3" y1="12" x2="37" y2="12" stroke="white" strokeOpacity="0.1" strokeDasharray="3 4" />
-      <line x1="3" y1={12 + off} x2="37" y2={12 - off} stroke={accent} strokeWidth="2.5" strokeLinecap="round" />
-      <circle cx="37" cy={12 - off} r="3" fill={accent} />
-    </svg>
-  )
-}
+// The promise that actually sets this test apart: you finish, you get your result — no wall, no catch.
+const PROMISES = ['No signup', 'No email', 'Your result on the spot', 'Stays in your browser', '~5 min']
 
 const STEPS = [
   {
     n: '01',
     slope: 0,
     accent: '#22d3ee',
-    title: 'Say "it depends"',
-    body: 'Every question lets you split the answer by context instead of forcing a single box.',
+    title: 'Answer honestly',
+    body: 'When one box doesn’t fit, say “it depends” and split your answer by context instead of forcing a single choice.',
   },
   {
     n: '02',
     slope: 1.6,
     accent: '#818cf8',
-    title: 'Rank and map your move',
-    body: 'Order the situations that pull at you, then map how you actually behave in each one.',
+    title: 'Rank what pulls at you',
+    body: 'Order the situations that tug hardest, then map how you actually behave in each one.',
   },
   {
     n: '03',
     slope: -1.6,
     accent: '#d946ef',
     title: 'Get your signature',
-    body: 'See how you shift as the stakes rise — and the archetype that move makes you.',
+    body: 'See how you shift as the stakes rise — and the archetype that shift makes you.',
   },
 ]
 
+function Check() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3 w-3 text-accent-soft" aria-hidden="true" fill="none">
+      <path d="M3 8.5l3 3 7-7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// A tiny rising/falling beam — the "it depends" slope motif, reused as the step glyphs. Mirrors the
+// archetype fingerprint look: a gradient line resting at centre with a faint fill under it.
+function Tick({ slope, accent, uid }: { slope: number; accent: string; uid: string }) {
+  const off = Math.max(-10, Math.min(10, slope * 5))
+  return (
+    <svg viewBox="0 0 40 24" className="h-6 w-10" aria-hidden="true">
+      <defs>
+        <linearGradient id={`tick-${uid}`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor={accent} stopOpacity="0.2" />
+          <stop offset="1" stopColor={accent} stopOpacity="1" />
+        </linearGradient>
+        <linearGradient id={`tick-${uid}-fill`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={accent} stopOpacity="0.18" />
+          <stop offset="1" stopColor={accent} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <line x1="3" y1="12" x2="37" y2="12" stroke="white" strokeOpacity="0.1" strokeDasharray="3 4" />
+      <path d={`M 3 ${12 + off} L 37 ${12 - off} L 37 12 L 3 12 Z`} fill={`url(#tick-${uid}-fill)`} />
+      <line x1="3" y1={12 + off} x2="37" y2={12 - off} stroke={`url(#tick-${uid})`} strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="37" cy={12 - off} r="3" fill={accent} />
+    </svg>
+  )
+}
+
 export function LandingPage({
-  resume, onStart, onContinue,
+  resume, invite = null, onStart, onContinue,
 }: {
   resume: { index: number; total: number } | null
+  /** a compare invite this visitor is answering */
+  invite?: { name?: string } | null
   onStart: (mode: 'short' | 'deep') => void
   onContinue: () => void
 }) {
   return (
-    <div className="relative mx-auto w-full max-w-5xl px-5 pb-24 pt-16 sm:pt-24">
+    <div className="relative w-full px-5 pb-24 pt-16 sm:px-8 sm:pt-24 lg:px-12 xl:px-20">
       {/* Layered radial glows — the dark "beam" hero wash. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-accent/20 blur-[120px]" />
@@ -63,29 +88,51 @@ export function LandingPage({
       </div>
 
       {/* 1 — Hero */}
-      <header className="flex flex-col items-start gap-6 sm:max-w-3xl">
+      <header className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6 text-center">
         <Reveal>
-          <p className="text-xs uppercase tracking-[0.4em] text-accent-soft/70">FPTIC</p>
+          <p className="text-xs uppercase tracking-[0.4em] text-accent-soft/70">Facets · personality test</p>
         </Reveal>
+        {invite && (
+          <Reveal delay={0.03}>
+            <p className="rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium text-accent-soft">
+              {invite.name ?? 'A friend'} invited you to compare — finish the test and we’ll line you up.
+            </p>
+          </Reveal>
+        )}
         <Reveal delay={0.06}>
-          <h1 className="font-display text-5xl font-bold leading-[1.02] sm:text-7xl">
-            The personality test that lets you say{' '}
+          <h1 className="font-display text-[2.5rem] font-bold leading-[1.05] sm:text-6xl xl:text-7xl">
+            Find out how you{' '}
             <span className="bg-gradient-to-r from-accent via-accent-soft to-accent-alt bg-clip-text text-transparent">
-              it depends.
+              actually show up.
             </span>
           </h1>
         </Reveal>
         <Reveal delay={0.13}>
           <p className="max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
-            Most tests force one box. Here you set the context for each question — and walk away with a
-            map of how you actually shift.
+            A personality test that respects you. Take it and see your full result the moment you
+            finish — no email, no signup, no catch.
           </p>
         </Reveal>
 
+        {/* The no-gatekeeping promise — the thing that actually sets this apart. */}
+        <Reveal delay={0.18}>
+          <ul className="flex flex-wrap justify-center gap-2">
+            {PROMISES.map(p => (
+              <li
+                key={p}
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70"
+              >
+                <Check />
+                {p}
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+
         {/* 2 — Primary CTAs */}
-        <Reveal delay={0.2} className="flex w-full flex-col gap-4">
+        <Reveal delay={0.24} className="flex w-full flex-col gap-4">
           {resume && (
-            <div className="flex flex-col items-start gap-2">
+            <div className="flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={onContinue}
@@ -93,38 +140,45 @@ export function LandingPage({
               >
                 Continue your run ({resume.index}/{resume.total})
               </button>
-              <span className="pl-1 text-xs text-white/40">or start fresh</span>
+              <span className="text-xs text-white/40">or start fresh</span>
             </div>
           )}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-            <button
-              type="button"
-              onClick={() => onStart('short')}
-              className={`group flex flex-1 flex-col items-start gap-1 rounded-beam bg-white/10 px-6 py-4 text-left shadow-glow transition-all hover:-translate-y-0.5 hover:bg-white/15 ${ring}`}
-            >
-              <span className="text-base font-semibold text-white">Quick read</span>
-              <span className="text-xs text-white/55">~24 questions · ~5 min</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onStart('deep')}
-              className={`group flex flex-1 flex-col items-start gap-1 rounded-beam border border-white/15 px-6 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.06] ${ring}`}
-            >
-              <span className="text-base font-semibold text-white/85">Deep dive</span>
-              <span className="text-xs text-white/55">~60 questions · ~10 min · sharper result</span>
-            </button>
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/40">Choose your depth</p>
+            <div className="flex w-full flex-col gap-3 sm:max-w-xl sm:flex-row sm:items-stretch">
+              <button
+                type="button"
+                onClick={() => onStart('short')}
+                className={`group flex flex-1 flex-col items-start gap-1 rounded-beam bg-white/10 px-6 py-4 text-left shadow-glow transition-all hover:-translate-y-0.5 hover:bg-white/15 ${ring}`}
+              >
+                <span className="text-base font-semibold text-white">Quick read</span>
+                <span className="text-xs text-white/55">~24 questions · ~5 min</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onStart('deep')}
+                className={`group flex flex-1 flex-col items-start gap-1 rounded-beam border border-white/15 px-6 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.06] ${ring}`}
+              >
+                <span className="text-base font-semibold text-white/85">Deep dive</span>
+                <span className="text-xs text-white/55">~60 questions · ~10 min · sharper result</span>
+              </button>
+            </div>
           </div>
         </Reveal>
       </header>
 
-      {/* 3 — How it works */}
+      {/* 3 — What makes it different (the "it depends" mechanic lives here now, as a feature) */}
       <section className="mt-28">
         <Reveal>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/40">How it works</p>
-          <h2 className="mt-2 max-w-xl font-display text-3xl font-semibold leading-tight sm:text-4xl">
-            You don't have one mode. The test is built to catch that.
+          <p className="text-xs uppercase tracking-[0.3em] text-white/40">What makes it different</p>
+          <h2 className="mt-2 max-w-2xl font-display text-3xl font-semibold leading-tight sm:text-4xl">
+            Real life is “it depends.” Most tests pretend it isn’t.
           </h2>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/65">
+            Other tests force you into one box. Here, when the honest answer is “it depends,” you can
+            say so — set the context, and walk away with a map of how you actually shift.
+          </p>
         </Reveal>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
@@ -133,7 +187,7 @@ export function LandingPage({
               <div className="flex h-full flex-col gap-4 rounded-beam border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-white/20">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs tracking-widest text-white/35">{s.n}</span>
-                  <Tick slope={s.slope} accent={s.accent} />
+                  <Tick slope={s.slope} accent={s.accent} uid={s.n} />
                 </div>
                 <h3 className="font-display text-xl font-semibold leading-tight text-white">{s.title}</h3>
                 <p className="text-sm leading-relaxed text-white/65">{s.body}</p>
@@ -141,6 +195,15 @@ export function LandingPage({
             </Reveal>
           ))}
         </div>
+
+        <Reveal delay={0.1}>
+          <Link
+            to="/method"
+            className={`mt-6 inline-flex items-center gap-1 rounded text-sm font-medium text-accent-soft transition-colors hover:text-accent ${ring}`}
+          >
+            See exactly how we measure you →
+          </Link>
+        </Reveal>
       </section>
 
       {/* 4 — Archetype teaser */}
@@ -150,23 +213,23 @@ export function LandingPage({
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-accent-soft/60">The cast</p>
               <h2 className="mt-2 font-display text-3xl font-semibold leading-tight sm:text-4xl">
-                20 ways to shift.
+                22 ways to show up.
               </h2>
               <p className="mt-2 max-w-md text-sm leading-relaxed text-white/60">
-                Each archetype is a different answer to "it depends" — a distinct shape for how the
-                situation moves you.
+                Each archetype is a portrait of how a person shows up — and how that shifts when the
+                situation changes.
               </p>
             </div>
             <Link
               to="/archetypes"
               className={`shrink-0 rounded-beam px-1 text-sm font-medium text-accent-soft transition-colors hover:text-accent ${ring}`}
             >
-              Explore all 20 archetypes →
+              Explore all 22 archetypes →
             </Link>
           </div>
         </Reveal>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {TEASER.map((a, i) => (
             <Reveal key={a.id} delay={0.05 * i}>
               <ArchetypeCard archetype={a} />
@@ -184,14 +247,13 @@ export function LandingPage({
               className="pointer-events-none absolute inset-x-0 -bottom-24 mx-auto h-56 w-[28rem] rounded-full bg-accent/15 blur-[110px]"
             />
             <h2 className="font-display text-3xl font-bold leading-tight sm:text-5xl">
-              So — what does it{' '}
+              Ready to{' '}
               <span className="bg-gradient-to-r from-accent-soft to-accent-alt bg-clip-text text-transparent">
-                depend
-              </span>{' '}
-              on for you?
+                meet yourself?
+              </span>
             </h2>
             <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-white/60">
-              Five minutes to a map of how you actually move. No single box required.
+              Five minutes, and your full result is yours — no email, no signup, no catch.
             </p>
             <button
               type="button"

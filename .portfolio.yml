@@ -1,0 +1,15 @@
+# Portfolio manifest, read by Portico when it discovers this repo.
+title: Facets
+summary: >
+  A personality test for everyone that lets you say "it depends". It measures
+  how you actually show up across situations on six behaviour dimensions, with
+  adaptive depth, archetypes, and a compare mode, and shows your full result
+  the moment you finish: no email, no signup, no paywall, all in your browser.
+role: Creator
+year: 2026
+tags:
+  - typescript
+  - react
+  - vite
+  - tailwind
+  - personality-test

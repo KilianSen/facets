@@ -8,6 +8,9 @@ build/
 vite.config.js
 vite.config.d.ts
 
+# Satoshi is downloaded at build time (its license forbids redistributing it via a repository)
+src/fonts/satoshi/
+
 # Brainstorm visual-companion artifacts
 .superpowers/
 

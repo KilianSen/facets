@@ -1,3 +1,16 @@
+/* Self-hosted fonts. Fraunces (OFL) comes from Fontsource; Satoshi (ITF FFL) is downloaded unchanged by
+   scripts/fetch-fonts.ts, since its license doesn't allow committing the files. */
+@import '@fontsource-variable/fraunces/opsz.css';
+@import '@fontsource-variable/fraunces/opsz-italic.css';
+
+@font-face {
+  font-family: 'Satoshi';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 900;
+  src: url('./fonts/satoshi/Satoshi-Variable.woff2') format('woff2');
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

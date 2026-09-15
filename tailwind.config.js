@@ -5,7 +5,7 @@ export default {
     extend: {
       // Editorial neo-brutalism: cream paper, near-black ink, one coral accent. No glows, no gradients.
       fontFamily: {
-        serif: ['Fraunces', 'Georgia', 'serif'],
+        serif: ['Fraunces Variable', 'Fraunces', 'Georgia', 'serif'],
         sans: ['Satoshi', 'system-ui', 'sans-serif'],
       },
       colors: {

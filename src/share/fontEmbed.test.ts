@@ -21,6 +21,15 @@ describe('inlineFontFaces', () => {
     expect(css).toContain('unicode-range: U+0000-00FF')
   })
 
+  it('recognises the Latin subset in the form browsers serialize it (U+0-FF)', async () => {
+    const serialized = `@font-face { font-family: "Fraunces Variable"; src: url("/assets/latin-ext.woff2") format("woff2-variations"); unicode-range: U+100-2BA, U+2BD-2C5; }
+@font-face { font-family: "Fraunces Variable"; src: url("/assets/latin.woff2") format("woff2-variations"); unicode-range: U+0-FF, U+131, U+152-153; }`
+    const fetchAsDataUrl = vi.fn(async () => 'data:font/woff2;base64,AAAA')
+    await inlineFontFaces(serialized, 'https://example.com/facets/', fetchAsDataUrl)
+    expect(fetchAsDataUrl).toHaveBeenCalledTimes(1)
+    expect(fetchAsDataUrl).toHaveBeenCalledWith('https://example.com/assets/latin.woff2')
+  })
+
   it('resolves protocol-relative URLs and uses only the first source of an unsubsetted face', async () => {
     const fetchAsDataUrl = vi.fn(async () => 'data:font/woff2;base64,AAAA')
     const css = await inlineFontFaces(FONTSHARE, 'https://api.fontshare.com/v2/css?f[]=satoshi@700', fetchAsDataUrl)

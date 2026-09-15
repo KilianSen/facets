@@ -94,7 +94,7 @@ export interface SharpenReadout { axisId: AxisId; instability: number; verdict: 
  * be consistent within each situation level — anything less reads "mixed" (the swing didn't hold up).
  */
 export function sharpenReadout(answers: Answer[], content: Content): SharpenReadout[] {
-  const reserve = new Map(content.questions.filter(q => q.reserve).map(q => [q.id, q]))
+  const reserve = new Map(content.questions.filter(q => q.reserve && !q.acrossSettings).map(q => [q.id, q]))
   const byAxis = new Map<AxisId, Answer[]>()
   for (const a of answers) {
     const q = reserve.get(a.questionId)
@@ -108,7 +108,9 @@ export function sharpenReadout(answers: Answer[], content: Content): SharpenRead
     if (ans.length < SHARPEN_MIN) continue
     const rules = extractRules(ans, content)
     const stab = axisStability(rules, content)[axisId]
-    if (stab.coverage <= 0) continue // no replicated evidence (e.g. all-neutral picks) → withhold a verdict
+    if (stab.coverage <= 0) continue // no replicated evidence → withhold a verdict
+    // All-neutral picks replicate perfectly but show no shift at all — nothing to judge, so withhold too.
+    if (rules.every(r => Object.values(r.vector).every(v => v === 0))) continue
     const { signature } = computeSignature(rules, content)
     const reproduced = Math.max(0, ...content.dims.map(d => Math.abs(signature[axisId]?.[d.id]?.slope ?? 0)))
     const solid = reproduced >= SHARPEN_REPRODUCE && stab.instability < MIXED_BAND

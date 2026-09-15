@@ -4,17 +4,33 @@
  * and write dist/r/<id>/index.html (the built SPA + per-archetype OG/Twitter meta).
  * Run after `vite build`. Optional env SITE_URL makes og:image/url absolute.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import satori from 'satori'
 import { Resvg } from '@resvg/resvg-js'
 import { ARCHETYPES } from '../src/content/archetypes'
+import { CONTENT } from '../src/content'
+import { crystalSvg } from '../src/signature/crystal'
+import { shapeFromArchetype } from '../src/signature/shape'
+import { accentOf } from '../src/archetypes/archetypeMeta'
 
 const DIST = 'dist'
 const SITE_URL = (process.env.SITE_URL ?? '').replace(/\/$/, '')
 
 async function loadFont(): Promise<ArrayBuffer> {
+  const localPaths = [
+    join(process.cwd(), 'scripts/fonts/DMSerifDisplay-Regular.ttf'),
+    join(process.cwd(), 'fonts/DMSerifDisplay-Regular.ttf'),
+  ]
+  for (const p of localPaths) {
+    if (existsSync(p)) {
+      const buf = readFileSync(p)
+      return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
+    }
+  }
+
   const urls = [
+    'https://raw.githubusercontent.com/google/fonts/main/ofl/dmserifdisplay/DMSerifDisplay-Regular.ttf',
     'https://raw.githubusercontent.com/google/fonts/main/ofl/archivoblack/ArchivoBlack-Regular.ttf',
     'https://raw.githubusercontent.com/google/fonts/main/ofl/spacegrotesk/static/SpaceGrotesk-Bold.ttf',
   ]
@@ -31,20 +47,33 @@ type El = { type: string; props: { style: Record<string, unknown>; children?: un
 const el = (type: string, style: Record<string, unknown>, children?: unknown): El => ({ type, props: { style: { display: 'flex', ...style }, children } })
 
 function card(a: (typeof ARCHETYPES)[number]): El {
+  // Same system as the app: cream paper, ink frame, coral stamp, and the archetype's 3D crystal
+  // signature (the same geometry the site draws). Flat — no gradients.
+  const crystal = crystalSvg(shapeFromArchetype(a), CONTENT, { yaw: -0.35, pitch: 0.42, accent: accentOf(a.id), width: 380, height: 320 })
+  const img = {
+    type: 'img',
+    props: {
+      src: `data:image/svg+xml;base64,${Buffer.from(crystal).toString('base64')}`,
+      width: 494, height: 416,
+      style: { position: 'absolute', right: '40px', top: '96px' },
+    },
+  }
   return el('div', {
     width: '1200px', height: '630px', flexDirection: 'column', justifyContent: 'center',
-    padding: '80px', position: 'relative', backgroundColor: '#08080c', color: 'white', fontFamily: 'Display',
-    backgroundImage:
-      'radial-gradient(900px 900px at 8% -25%, rgba(34,211,238,0.28), transparent), radial-gradient(750px 750px at 120% 25%, rgba(217,70,239,0.24), transparent)',
+    padding: '64px', position: 'relative', backgroundColor: '#FAF7F2', color: '#151515', fontFamily: 'Display',
+    border: '14px solid #151515',
   }, [
-    el('div', { fontSize: '26px', letterSpacing: '10px', color: '#67e8f9', marginBottom: '14px' }, 'FACETS'),
-    el('div', { fontSize: '34px', color: 'rgba(255,255,255,0.55)' }, 'You are'),
-    el('div', { fontSize: '108px', lineHeight: '1', margin: '4px 0 22px' }, a.name),
-    el('div', { alignItems: 'center', gap: '18px' }, [
-      el('div', { fontSize: '26px', color: '#67e8f9', border: '2px solid rgba(34,211,238,0.45)', borderRadius: '999px', padding: '6px 20px' }, a.code),
-      el('div', { fontSize: '32px', color: 'rgba(255,255,255,0.8)' }, a.tagline),
+    img,
+    el('div', { flexDirection: 'column', maxWidth: '640px' }, [
+      el('div', { fontSize: '30px', marginBottom: '18px' }, 'Facets.'),
+      el('div', { fontSize: '36px', color: '#55504B' }, 'I am'),
+      el('div', { fontSize: '96px', lineHeight: '1', margin: '6px 0 28px' }, a.name),
+      el('div', { alignItems: 'center', gap: '20px', flexWrap: 'wrap' }, [
+        el('div', { fontSize: '26px', backgroundColor: '#FF5A36', border: '4px solid #151515', borderRadius: '999px', padding: '6px 22px' }, a.code),
+        el('div', { fontSize: '32px', color: '#55504B' }, a.tagline),
+      ]),
     ]),
-    el('div', { position: 'absolute', bottom: '60px', left: '80px', fontSize: '26px', color: 'rgba(255,255,255,0.5)' }, 'a personality test for everyone'),
+    el('div', { position: 'absolute', bottom: '44px', left: '64px', fontSize: '26px', color: '#55504B' }, 'a personality test for everyone'),
   ])
 }
 
@@ -95,7 +124,7 @@ async function main() {
 
   // Gallery index (/archetypes).
   const galleryHtml = injectMeta(template, {
-    title: 'The 22 Facets archetypes',
+    title: `The ${ARCHETYPES.length} Facets archetypes`,
     desc: 'Every way people shift across situations — closeness, audience, stakes, power, initiative, energy. The Facets field guide.',
     url: `${SITE_URL}/archetypes`,
   })
@@ -120,7 +149,10 @@ async function main() {
   mkdirSync(join(DIST, 'compare'), { recursive: true })
   writeFileSync(join(DIST, 'compare', 'index.html'), compareHtml)
 
-  console.log(`gen-share: wrote ${ARCHETYPES.length} OG cards + share/detail pages + gallery + method + compare${SITE_URL ? ` (SITE_URL=${SITE_URL})` : ' (relative URLs)'}`)
+  // Fallback shell for GitHub Pages SPA client routing
+  writeFileSync(join(DIST, '404.html'), template)
+
+  console.log(`gen-share: wrote ${ARCHETYPES.length} OG cards + share/detail pages + gallery + method + compare + 404.html${SITE_URL ? ` (SITE_URL=${SITE_URL})` : ' (relative URLs)'}`)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })

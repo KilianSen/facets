@@ -23,9 +23,9 @@ function build(axis: string, dims: [string, string], items: Item[]): Question[] 
       ],
       options: [
         { id: 'A', label: it.optHigh, vector: hi },
-        // The mid option carries NO vector on purpose: an answerer who picks neutral everywhere then
-        // produces no replicated evidence, so the verdict withholds rather than calling a non-shift
-        // "rock-solid" (see sharpenReadout's coverage gate). High/low carry the signal.
+        // The mid option reads as 0 on both behaviours (see readOption). An answerer who picks neutral
+        // everywhere shows no shift at all, so sharpenReadout withholds the verdict rather than calling a
+        // non-shift "rock-solid". High/low carry the signal.
         { id: 'B', label: it.optMid, vector: {} },
         { id: 'C', label: it.optLow, vector: lo },
       ],

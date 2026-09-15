@@ -15,6 +15,12 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   })) as unknown as typeof window.matchMedia
 }
 
+// jsdom lacks window.scrollTo, which navigation and scroll utilities invoke.
+if (typeof window !== 'undefined') {
+  window.scrollTo = (() => {}) as unknown as typeof window.scrollTo
+}
+
+
 // jsdom lacks PointerEvent, which Framer Motion 12 dispatches during keyboard press gestures.
 if (typeof window !== 'undefined' && !window.PointerEvent) {
   class PointerEvent extends MouseEvent {

@@ -1,85 +1,49 @@
 import { Link } from '../router/router'
 import { Reveal } from '../ui/Reveal'
+import { Mark } from '../ui/Mark'
+import { SiteNav } from '../ui/SiteNav'
+import { btnPrimary, eyebrow, tag } from '../ui/styles'
 import { ARCHETYPE_GROUPS, getArchetype } from './archetypeMeta'
 import { ArchetypeCard } from './ArchetypeCard'
-
-const ring =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
 
 export function ArchetypesPage() {
   return (
     <div className="min-h-screen w-full">
-      {/* Top bar — minimal, sticky, glass over ink */}
-      <header className="sticky top-0 z-20 border-b border-white/5 bg-ink/70 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-3.5">
-          <Link
-            to="/"
-            className={`rounded text-sm font-medium tracking-wide text-white/60 transition-colors hover:text-white ${ring}`}
-          >
-            <span aria-hidden="true">←</span> Facets
-          </Link>
-          <Link
-            to="/"
-            className={`rounded-beam bg-accent/15 px-4 py-2 text-sm font-medium text-accent-soft shadow-glow transition-colors hover:bg-accent/25 ${ring}`}
-          >
-            Take the test <span aria-hidden="true">→</span>
-          </Link>
-        </div>
-      </header>
+      <SiteNav />
 
-      <main className="mx-auto w-full max-w-5xl px-5 pb-24 pt-14 sm:pt-20">
-        {/* Editorial header */}
-        <Reveal>
-          <p className="text-xs uppercase tracking-[0.3em] text-accent-soft/70">The Field Guide</p>
-        </Reveal>
-        <Reveal delay={0.06}>
-          <h1 className="mt-4 max-w-3xl font-display text-5xl font-bold leading-[1.02] sm:text-6xl">
-            22 ways
-            <br className="hidden sm:block" /> people shift
+      <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-12 sm:px-6 sm:pt-16">
+        <Reveal><p className={eyebrow}>The field guide</p></Reveal>
+        <Reveal delay={0.04}>
+          <h1 className="mt-3 max-w-3xl font-serif text-5xl font-bold leading-[1] tracking-tight sm:text-7xl">
+            {ARCHETYPE_GROUPS.reduce((n, g) => n + g.archetypeIds.length, 0)} ways <Mark>people shift</Mark>
           </h1>
         </Reveal>
-        <Reveal delay={0.12}>
-          <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">
-            These are the archetypes. Each one is a <span className="text-white/90">pattern of how someone
+        <Reveal delay={0.08}>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft">
+            These are the archetypes. Each one is a <span className="font-semibold text-ink">pattern of how someone
             changes</span> as a single situation rises — closeness, audience, stakes, power, initiative, or
             energy — plus the shape-shifters who pivot on more than one, and the constant who barely moves at
             all. Nobody is one box. This is the shape of how you actually shift.
           </p>
         </Reveal>
 
-        {/* The gallery — one section per group, accent does the organising */}
-        <div className="mt-16 flex flex-col gap-20 sm:mt-20 sm:gap-24">
-          {ARCHETYPE_GROUPS.map((group, i) => {
-            const archetypes = group.archetypeIds
-              .map(getArchetype)
-              .filter((a): a is NonNullable<typeof a> => !!a)
-
+        <div className="mt-16 flex flex-col gap-16 sm:mt-20 sm:gap-20">
+          {ARCHETYPE_GROUPS.map(group => {
+            const archetypes = group.archetypeIds.map(getArchetype).filter((a): a is NonNullable<typeof a> => !!a)
             return (
-              <Reveal key={group.id} delay={i === 0 ? 0 : 0.04}>
+              <Reveal key={group.id}>
                 <section aria-labelledby={`group-${group.id}`}>
-                  <div className="flex flex-col gap-2 border-l-2 pl-4" style={{ borderColor: group.accent }}>
-                    <div className="flex items-baseline gap-3">
-                      <h2
-                        id={`group-${group.id}`}
-                        className="font-display text-2xl font-semibold tracking-tight sm:text-3xl"
-                        style={{ color: group.accent }}
-                      >
-                        {group.label}
-                      </h2>
-                      <span className="font-mono text-xs tabular-nums text-white/30">
-                        {String(archetypes.length).padStart(2, '0')}
-                      </span>
+                  <div className="flex flex-col gap-2 border-b-2 border-ink pb-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <span aria-hidden="true" className="h-6 w-6 rounded-full border-2 border-ink" style={{ background: group.accent }} />
+                      <h2 id={`group-${group.id}`} className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">{group.label}</h2>
+                      <span className={`${tag} bg-white tabular-nums`}>{archetypes.length}</span>
                     </div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">
-                      {group.spectrum}
-                    </p>
-                    <p className="max-w-xl text-sm leading-relaxed text-white/65">{group.blurb}</p>
+                    <p className="text-sm font-semibold text-ink-soft">{group.spectrum}</p>
                   </div>
-
+                  <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-soft">{group.blurb}</p>
                   <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {archetypes.map(a => (
-                      <ArchetypeCard key={a.id} archetype={a} />
-                    ))}
+                    {archetypes.map(a => <ArchetypeCard key={a.id} archetype={a} />)}
                   </div>
                 </section>
               </Reveal>
@@ -87,22 +51,14 @@ export function ArchetypesPage() {
           })}
         </div>
 
-        {/* Closing CTA */}
-        <Reveal delay={0.04}>
-          <div className="mt-24 flex flex-col items-center gap-5 rounded-beam border border-white/10 bg-white/[0.03] px-6 py-12 text-center">
-            <p className="font-display text-2xl font-semibold leading-tight sm:text-3xl">
-              Don't know which one you are?
-            </p>
-            <p className="max-w-md text-sm leading-relaxed text-white/60">
+        <Reveal>
+          <div className="mt-24 flex flex-col items-center gap-5 rounded-card border-2 border-ink bg-ink px-6 py-14 text-center text-paper">
+            <p className="font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Don't know which one you are?</p>
+            <p className="max-w-md text-[15px] leading-relaxed text-paper/75">
               You're probably a few of these at once. The test reads which way you actually lean — and how
               far you swing when the situation turns up.
             </p>
-            <Link
-              to="/"
-              className={`mt-1 rounded-beam bg-accent px-7 py-3 text-sm font-semibold text-ink shadow-glow transition-transform hover:-translate-y-0.5 ${ring}`}
-            >
-              Take the test <span aria-hidden="true">→</span>
-            </Link>
+            <Link to="/" className={`${btnPrimary} mt-1 shadow-none`}>Take the test →</Link>
           </div>
         </Reveal>
       </main>

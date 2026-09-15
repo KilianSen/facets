@@ -1,5 +1,5 @@
 import { useReducer } from 'react'
-import type { Answer, Question } from '../engine/types'
+import type { Answer, Case, Question } from '../engine/types'
 
 export const STORAGE_KEY = 'fptic.quiz.v1'
 
@@ -9,9 +9,14 @@ export interface QuizState {
   index: number
   phase: QuizPhase
   answers: Answer[]
+  /**
+   * Depends: case ids in the order the user answered them. That order IS the ranking (most-true
+   * first) — people start with whoever the situation is most true for, so no separate rank step.
+   */
   draftRanking: string[]
   draftMapping: Record<string, string>
-  caseIndex: number
+  /** Depends: the case currently open for answering; null = let the user pick who's next. */
+  activeCaseId: string | null
   canCommit: boolean
   /** prior single-tap choice to preselect when returning to a flavor question via Back */
   selectedOptionId?: string
@@ -21,10 +26,10 @@ export type QuizAction =
   | { type: 'ANSWER_SINGLE'; optionId: string }
   | { type: 'START_DEPENDS' }
   | { type: 'CANCEL_DEPENDS' }
-  | { type: 'SET_RANK_ORDER'; ranking: string[] }
-  | { type: 'SET_CASE_INDEX'; caseIndex: number }
-  | { type: 'MAP_CASE'; caseId: string; optionId: string; autoAdvance?: boolean }
+  | { type: 'OPEN_CASE'; caseId: string }
+  | { type: 'MAP_CASE'; caseId: string; optionId: string }
   | { type: 'FILL_ALL'; optionId: string }
+  | { type: 'RESET_DEPENDS' }
   | { type: 'COMMIT_DEPENDS' }
   | { type: 'GO_BACK' }
 
@@ -49,20 +54,34 @@ export function loadProgress(): StoredProgress | null {
   return null
 }
 
-const EMPTY_DRAFT = { draftRanking: [] as string[], draftMapping: {} as Record<string, string>, caseIndex: 0, canCommit: false }
+const EMPTY_DRAFT = { draftRanking: [] as string[], draftMapping: {} as Record<string, string>, activeCaseId: null, canCommit: false }
+
+/** With exactly one person left, open them automatically — their place in the ranking is already decided. */
+function nextOpen(cases: Case[], mapping: Record<string, string>): string | null {
+  const left = cases.filter(c => mapping[c.id] === undefined)
+  return left.length === 1 ? left[0].id : null
+}
+
+function dependsDraft(q: Question, ranking: string[] = [], mapping: Record<string, string> = {}) {
+  const cases = q.cases ?? []
+  return {
+    draftRanking: ranking,
+    draftMapping: mapping,
+    activeCaseId: nextOpen(cases, mapping),
+    canCommit: cases.length > 0 && cases.every(c => mapping[c.id] !== undefined),
+  }
+}
 
 function phaseFor(index: number, questions: Question[]): QuizPhase {
   if (index >= questions.length) return 'done'
   return questions[index].kind === 'backbone' ? 'depends' : 'single'
 }
 
-/** Fresh state for landing on `index` (default case order when it's a depends question). */
-function landOn(index: number, questions: Question[]): Pick<QuizState, 'index' | 'phase' | 'draftRanking' | 'draftMapping' | 'caseIndex' | 'canCommit' | 'selectedOptionId'> {
+/** Fresh state for landing on `index`. */
+function landOn(index: number, questions: Question[]): Omit<QuizState, 'answers'> {
   const phase = phaseFor(index, questions)
   const q = questions[index]
-  if (phase === 'depends' && q?.cases) {
-    return { index, phase, draftRanking: q.cases.map(c => c.id), draftMapping: {}, caseIndex: 0, canCommit: false, selectedOptionId: undefined }
-  }
+  if (phase === 'depends' && q?.cases) return { index, phase, ...dependsDraft(q), selectedOptionId: undefined }
   return { index, phase, ...EMPTY_DRAFT, selectedOptionId: undefined }
 }
 
@@ -85,6 +104,8 @@ function advance(state: QuizState, answer: Answer, questions: Question[]): QuizS
 
 export function quizReducer(state: QuizState, action: QuizAction, questions: Question[]): QuizState {
   const current = questions[state.index]
+  const hasCase = (id: string) => !!current?.cases?.some(c => c.id === id)
+
   switch (action.type) {
     case 'ANSWER_SINGLE':
       if (!current) return state
@@ -92,46 +113,42 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
 
     case 'START_DEPENDS':
       if (!current?.cases) return state
-      return { ...state, phase: 'depends', draftRanking: current.cases.map(c => c.id), draftMapping: {}, caseIndex: 0, canCommit: false, selectedOptionId: undefined }
+      return { ...state, phase: 'depends', ...dependsDraft(current), selectedOptionId: undefined }
 
     case 'CANCEL_DEPENDS':
       // Only a promoted flavor question can collapse back to single-tap; backbone stays depends.
       if (current?.kind !== 'flavor') return state
       return { ...state, phase: 'single', ...EMPTY_DRAFT, selectedOptionId: undefined }
 
-    case 'SET_RANK_ORDER':
-      if (state.phase !== 'depends') return state
-      return { ...state, draftRanking: action.ranking }
-
-    case 'SET_CASE_INDEX': {
-      if (!current?.cases) return state
-      const maxIdx = Math.max(0, current.cases.length - 1)
-      const nextIdx = Math.max(0, Math.min(maxIdx, action.caseIndex))
-      return { ...state, caseIndex: nextIdx }
-    }
+    case 'OPEN_CASE':
+      if (state.phase !== 'depends' || !hasCase(action.caseId)) return state
+      return { ...state, activeCaseId: state.activeCaseId === action.caseId ? null : action.caseId }
 
     case 'MAP_CASE': {
-      if (!current?.cases) return state
-      const draftMapping = { ...state.draftMapping, [action.caseId]: action.optionId }
-      const canCommit = current.cases.every(c => draftMapping[c.id] !== undefined)
-      const shouldAdvance = action.autoAdvance !== false && state.caseIndex < current.cases.length - 1
-      const nextCaseIndex = shouldAdvance ? state.caseIndex + 1 : state.caseIndex
-      return { ...state, draftMapping, canCommit, caseIndex: nextCaseIndex }
+      if (state.phase !== 'depends' || !current || !hasCase(action.caseId)) return state
+      const mapping = { ...state.draftMapping, [action.caseId]: action.optionId }
+      // First answer for a case appends it to the ranking; re-answering keeps its place.
+      const ranking = state.draftRanking.includes(action.caseId) ? state.draftRanking : [...state.draftRanking, action.caseId]
+      return { ...state, ...dependsDraft(current, ranking, mapping) }
     }
 
     case 'FILL_ALL': {
-      if (!current?.cases) return state
-      const draftMapping: Record<string, string> = {}
-      for (const c of current.cases) draftMapping[c.id] = action.optionId
-      return { ...state, draftMapping, canCommit: true }
+      if (state.phase !== 'depends' || !current?.cases) return state
+      const mapping: Record<string, string> = {}
+      for (const c of current.cases) mapping[c.id] = action.optionId
+      // Anyone not yet ranked follows the already-answered ones, in authored order.
+      const ranking = [...state.draftRanking, ...current.cases.map(c => c.id).filter(id => !state.draftRanking.includes(id))]
+      return { ...state, ...dependsDraft(current, ranking, mapping) }
     }
+
+    case 'RESET_DEPENDS':
+      if (state.phase !== 'depends' || !current?.cases) return state
+      return { ...state, ...dependsDraft(current) }
 
     case 'COMMIT_DEPENDS': {
       if (!current?.cases || !state.canCommit) return state
-      return advance(state, {
-        questionId: current.id, mode: 'depends',
-        ranking: state.draftRanking, mapping: state.draftMapping,
-      }, questions)
+      const ranking = [...state.draftRanking, ...current.cases.map(c => c.id).filter(id => !state.draftRanking.includes(id))]
+      return advance(state, { questionId: current.id, mode: 'depends', ranking, mapping: state.draftMapping }, questions)
     }
 
     case 'GO_BACK': {
@@ -141,8 +158,7 @@ export function quizReducer(state: QuizState, action: QuizAction, questions: Que
       const prior = state.answers.find(a => a.questionId === prev.id)
       persist(state.answers, index, questions)
       if (prior && prior.mode === 'depends') {
-        const canCommit = prev.cases ? prev.cases.every(c => prior.mapping[c.id] !== undefined) : false
-        return { ...state, index, phase: 'depends', draftRanking: prior.ranking, draftMapping: prior.mapping, caseIndex: 0, canCommit, selectedOptionId: undefined }
+        return { ...state, index, phase: 'depends', ...dependsDraft(prev, prior.ranking, prior.mapping), selectedOptionId: undefined }
       }
       return { ...state, ...landOn(index, questions), selectedOptionId: prior && prior.mode === 'single' ? prior.optionId : undefined }
     }

@@ -5,13 +5,16 @@ export interface SituationAxis {
   id: AxisId; name: string; lowLabel: string; highLabel: string
   /** short, direction-neutral phrase naming the situation as a facet lens (e.g. "under pressure") */
   lens?: string
+  /** the "It depends…" affordance on a single-answer question about this situation */
+  dependsLabel?: string
 }
 export interface BehaviorDim { id: DimId; name: string; lowLabel: string; highLabel: string }
 
 export type Vector = Record<DimId, number>
 
 export interface Option { id: string; label: string; vector: Vector }
-export interface Case { id: string; label: string; axisLevel: number } // 0..1
+export type CaseSetting = 'romance' | 'work' | 'social' | 'family'
+export interface Case { id: string; label: string; axisLevel: number; setting?: CaseSetting } // 0..1
 export type QuestionKind = 'backbone' | 'flavor'
 
 export interface Question {
@@ -21,8 +24,10 @@ export interface Question {
   kind: QuestionKind
   axis?: AxisId
   cases?: Case[]
-  /** held out of base runs; drawn only for the adaptive "sharpen" round (parallel items per axis) */
+  /** held out of base runs and the signature; drawn only by a follow-up round (sharpen, or across-your-life) */
   reserve?: boolean
+  /** an across-your-life item (deep dive): one situation asked in each setting; read only by the setting offsets */
+  acrossSettings?: boolean
 }
 
 export interface Archetype {
@@ -99,7 +104,14 @@ export interface ArchetypeMatch { id: string; confidence: number; runnerUpId?: s
  * doesn't cover. `strength` = the axis's strongest |slope| or |bend|; `fit` = how much of the user's
  * shape on that axis the facet explains (1 = exactly, 0 = no better than flat).
  */
-export interface Facet { axisId: AxisId; archetypeId: string; strength: number; fit: number }
+export interface Facet {
+  axisId: AxisId
+  archetypeId: string
+  strength: number
+  fit: number
+  /** every situation this facet explains — several for a blend (defaults to [axisId]) */
+  axes?: AxisId[]
+}
 
 /** How shaky an axis's slope estimate is (high instability = inconsistent answers). */
 export interface AxisStability { axisId: AxisId; instability: number; coverage: number; n: number }
@@ -112,7 +124,9 @@ export interface Profile {
   /** context-independent average behavioural level per dim (drives baseline-aware matching) */
   baseline: Record<DimId, number>
   flexibility: number
-  /** up to MAX_FACETS secondary facets on axes the primary archetype doesn't cover (absent on legacy caches) */
+  /** strong shifts no type in the cast explains, as plain-language tells (absent on legacy caches) */
+  unexplained?: Contingency[]
+  /** the co-stars: every other cast member — layers on a situation, or blends across several (absent on legacy caches) */
   facets?: Facet[]
   /** per-axis unsettled/instability scores (used on parallel sharpen items only) */
   axisStability?: Record<AxisId, AxisStability>

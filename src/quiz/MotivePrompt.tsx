@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MotiveOption, SituationAxis } from '../engine/types'
 import { Reveal } from '../ui/Reveal'
-
-const ring = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
+import { Mark } from '../ui/Mark'
+import { btnGhost, card, optionClass, tag } from '../ui/styles'
 
 export interface MotiveStep { axis: SituationAxis; tell: string | null; options: MotiveOption[] }
 export interface MotivePick { axisId: string; motiveId: string }
@@ -30,34 +30,34 @@ export function MotivePrompt({ steps, onDone }: { steps: MotiveStep[]; onDone: (
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 px-5 py-12">
-      <Reveal key={`why-${index}`} className="flex flex-col gap-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-accent-soft/70">
-          Why you shift{steps.length > 1 && <span className="text-white/35"> · {index + 1} of {steps.length}</span>}
-        </p>
-        <div className="flex flex-col gap-3">
-          <h1 ref={headingRef} tabIndex={-1} className="font-display text-3xl font-bold leading-[1.1] focus-visible:outline-none">
-            You swing hard on <span className="text-accent-soft">{step.axis.name}</span>.
-          </h1>
-          {step.tell && <p className="border-l-2 border-accent/40 pl-3 text-sm leading-relaxed text-white/75">{step.tell}</p>}
-          <p className="text-sm text-white/55">Honestly — what’s really behind that?</p>
+    <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-4 py-10">
+      <Reveal key={`why-${index}`} className="flex flex-col gap-5">
+        <div className="flex items-center justify-between px-1">
+          <span className={`${tag} bg-coral-soft`}>Why you shift</span>
+          {steps.length > 1 && <span className="text-sm font-bold tabular-nums">{index + 1} of {steps.length}</span>}
         </div>
 
+        <div className={`${card} px-5 py-6 sm:px-8 sm:py-8`}>
+          <h1 ref={headingRef} tabIndex={-1} className="font-serif text-3xl font-bold leading-tight tracking-tight focus-visible:outline-none sm:text-4xl">
+            You swing hard on <Mark>{step.axis.name}</Mark>.
+          </h1>
+          {step.tell && (
+            <p className="mt-4 border-l-4 border-coral pl-4 font-serif text-lg italic leading-snug text-ink-soft">{step.tell}</p>
+          )}
+        </div>
+
+        <p className="px-1 text-sm font-bold">Honestly — what’s really behind that?</p>
         <ul aria-label="Possible reasons" className="flex flex-col gap-2.5">
           {step.options.map(o => (
             <li key={o.motiveId}>
-              <button
-                type="button"
-                onClick={() => next({ axisId: step.axis.id, motiveId: o.motiveId })}
-                className={`w-full rounded-beam border border-white/10 bg-white/[0.04] px-4 py-3.5 text-left text-sm text-white/85 transition-colors hover:border-accent/40 hover:bg-accent/10 ${ring}`}
-              >
+              <button type="button" onClick={() => next({ axisId: step.axis.id, motiveId: o.motiveId })} className={optionClass(false)}>
                 {o.label}
               </button>
             </li>
           ))}
         </ul>
 
-        <button type="button" onClick={() => next()} className={`self-center rounded text-xs text-white/40 transition-colors hover:text-white/70 ${ring}`}>
+        <button type="button" onClick={() => next()} className={`${btnGhost} self-center`}>
           Not sure — skip
         </button>
       </Reveal>

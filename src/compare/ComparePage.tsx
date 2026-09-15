@@ -1,22 +1,20 @@
 import { useState, type ReactNode } from 'react'
 import { Link, navigate, useSearch } from '../router/router'
-import { Beam } from '../ui/Beam'
 import { Reveal } from '../ui/Reveal'
+import { SiteNav } from '../ui/SiteNav'
 import { CONTENT } from '../content'
 import {
   computeProfile, compareProfiles, syncBand, facetCode,
   type Answer, type CompareRow, type Profile,
+  selectObserverQuestions, computeObserverReport, type ObserverGapItem,
 } from '../engine'
+import { QuizFlow } from '../quiz/QuizFlow'
 import { decodeAnswers, encodeAnswers, sameAnswers } from '../share/permalink'
 import { accentOf, getArchetype } from '../archetypes/archetypeMeta'
 import { RESULT_STORAGE_KEY } from '../app/App'
 import { STORAGE_KEY } from '../quiz/useQuizState'
+import { btnGhost, btnPrimary, btnSecondary, btnSmall, card, eyebrow, panel, ring, stamp, tag } from '../ui/styles'
 import { compareUrl, parseCompare, savePending, cleanName, MAX_NAME, type CompareParams } from './compareLink'
-
-const ring =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink'
-const primaryBtn = `rounded-beam bg-accent/15 px-5 py-2.5 text-sm font-medium text-accent-soft shadow-glow transition-colors hover:bg-accent/25 ${ring}`
-const quietBtn = `rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/15 ${ring}`
 
 /** This browser's own finished run, if any — lets an invitee compare without retaking. */
 function ownAnswers(): Answer[] {
@@ -61,7 +59,7 @@ function CopyLink({ label = 'Copy link' }: { label?: string }) {
   return (
     <button
       type="button"
-      className={quietBtn}
+      className={btnSmall}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(window.location.href)
@@ -78,27 +76,56 @@ function CopyLink({ label = 'Copy link' }: { label?: string }) {
 function Broken() {
   return (
     <section className="flex flex-col items-center gap-5 py-16 text-center">
-      <p className="font-mono text-xs uppercase tracking-[0.3em] text-white/40">compare · link broken</p>
-      <h1 className="font-display text-3xl font-bold leading-tight">This compare link doesn’t work.</h1>
-      <p className="text-sm text-white/60">It may have been cut off when it was pasted. Ask for the link again.</p>
-      <Link to="/" className={primaryBtn}>Take the test →</Link>
+      <p className={eyebrow}>compare · link broken</p>
+      <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight">This compare link doesn’t work.</h1>
+      <p className="text-[15px] text-ink-soft">It may have been cut off when it was pasted. Ask for the link again.</p>
+      <Link to="/" className={btnPrimary}>Take the test →</Link>
     </section>
   )
 }
 
-function Invite({ inviter, params, own }: { inviter: Person; params: CompareParams; own: Answer[] }) {
+function ProfileCard({ p, label, tilt }: { p: Person; label: string; tilt: string }) {
+  const arch = getArchetype(p.profile.archetype.id)
+  const accent = arch ? accentOf(arch.id) : '#FF5A36'
+  const name = arch ? arch.name : p.profile.archetype.id
+  const to = arch ? `/archetypes/${arch.id}` : '#'
+  return (
+    <div className={`${card} ${tilt} overflow-hidden`}>
+      <div aria-hidden="true" className="h-3 border-b-2 border-ink" style={{ background: accent }} />
+      <div className="flex min-w-0 flex-col gap-1.5 px-3 pb-12 pt-3 sm:px-5 sm:pt-4">
+        <span className={`${eyebrow} truncate`}>{label}</span>
+        <Link to={to} className={`rounded font-serif text-2xl font-bold leading-tight tracking-tight hover:underline sm:text-3xl ${ring}`}>
+          {name}
+        </Link>
+        <span className="text-[10px] font-bold tracking-[0.12em] text-ink-soft">{facetCode(p.profile.archetype.id, p.profile.facets ?? [], CONTENT)}</span>
+      </div>
+    </div>
+  )
+}
+
+function Invite({
+  inviter,
+  params,
+  own,
+  onStartObserver,
+}: {
+  inviter: Person
+  params: CompareParams
+  own: Answer[]
+  onStartObserver?: (name?: string) => void
+}) {
   const [name, setName] = useState('')
-  const arch = getArchetype(inviter.profile.archetype.id)!
-  const accent = accentOf(arch.id)
-  const code = facetCode(arch.id, inviter.profile.facets ?? [], CONTENT)
+  const arch = getArchetype(inviter.profile.archetype.id)
+  const archId = arch ? arch.id : inviter.profile.archetype.id
+  const code = facetCode(archId, inviter.profile.facets ?? [], CONTENT)
   const bn = cleanName(name) || undefined
 
   if (inviter.isYou) {
     return (
       <section className="flex flex-col items-center gap-5 py-10 text-center">
-        <p className="text-xs uppercase tracking-[0.3em] text-accent-soft/70">Your invite</p>
-        <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl">This is your own compare link.</h1>
-        <p className="max-w-md text-sm leading-relaxed text-white/65">
+        <span className={`${tag} bg-coral-soft`}>Your invite</span>
+        <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight">This is your own compare link.</h1>
+        <p className="max-w-md text-[15px] leading-relaxed text-ink-soft">
           Send it to a friend. Once they finish the test, you’ll both see where you click, where you clash,
           and what each of you doesn’t see coming.
         </p>
@@ -116,48 +143,65 @@ function Invite({ inviter, params, own }: { inviter: Person; params: ComparePara
 
   return (
     <section className="flex flex-col items-center gap-7 text-center">
-      <Reveal><p className="text-xs uppercase tracking-[0.3em] text-accent-soft/70">Compare</p></Reveal>
-      <Reveal delay={0.05}>
-        <h1 className="font-display text-3xl font-bold leading-[1.1] sm:text-5xl">
+      <Reveal><span className={`${tag} bg-coral-soft`}>Compare</span></Reveal>
+      <Reveal delay={0.04}>
+        <h1 className="font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
           {params.an ? `${params.an} wants to see how you two compare.` : 'Someone wants to see how you two compare.'}
         </h1>
       </Reveal>
 
-      <Reveal delay={0.1} className="w-full max-w-sm">
-        <Beam glow innerClassName="flex flex-col items-center gap-1.5 px-6 py-6">
-          <span className="text-xs uppercase tracking-[0.25em] text-white/45">{params.an ? `${params.an} is` : 'They’re'}</span>
-          <span className="font-display text-3xl font-bold" style={{ color: accent }}>{arch.name}</span>
-          <span className="font-mono text-[11px] tracking-wider text-white/55">{code}</span>
-          <span className="text-sm text-white/70">{arch.tagline}</span>
-        </Beam>
+      <Reveal delay={0.08} className="w-full max-w-sm">
+        <div className={`${card} -rotate-1 overflow-hidden text-left`}>
+          <div aria-hidden="true" className="h-4 border-b-2 border-ink" style={{ background: accentOf(archId) }} />
+          <div className="flex flex-col gap-1 p-5">
+            <span className={eyebrow}>{params.an ? `${params.an} is` : 'They’re'}</span>
+            <span className="font-serif text-4xl font-bold leading-tight tracking-tight">{arch?.name ?? archId}</span>
+            {arch?.tagline && <span className="font-serif italic text-ink-soft">{arch.tagline}</span>}
+            <span className={`${stamp} mt-2 w-fit`}>{code}</span>
+          </div>
+        </div>
       </Reveal>
 
-      <Reveal delay={0.15}>
-        <p className="max-w-md text-sm leading-relaxed text-white/65">
+      <Reveal delay={0.12}>
+        <p className="max-w-md text-[15px] leading-relaxed text-ink-soft">
           Take the test and we’ll line your signatures up: where you shift the same way, where you pull in
           opposite directions, and where one of you moves and the other doesn’t notice.
         </p>
       </Reveal>
 
-      <Reveal delay={0.2} className="flex w-full max-w-sm flex-col items-center gap-4">
-        <label className="flex w-full flex-col gap-1.5 text-left text-xs text-white/50">
-          Your name <span className="text-white/30">(optional — so they know it’s you)</span>
+      <Reveal delay={0.16} className="flex w-full max-w-sm flex-col items-center gap-4">
+        <label className="flex w-full flex-col gap-1.5 text-left text-sm font-semibold">
+          <span>Your name <span className="font-normal text-ink-soft">(optional — so they know it’s you)</span></span>
           <input
             value={name}
             maxLength={MAX_NAME}
             onChange={e => setName(e.target.value)}
-            className={`rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 ${ring}`}
+            className={`rounded-full border-2 border-ink bg-white px-4 py-2.5 text-[15px] font-normal placeholder:text-ink-faint ${ring}`}
             placeholder="e.g. Sam"
           />
         </label>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-3 w-full">
           {own.length > 0 && (
-            <button type="button" className={primaryBtn} onClick={() => navigate(compareUrl({ ...params, b: encodeAnswers(own), bn }))}>
+            <button type="button" className={`${btnPrimary} w-full`} onClick={() => navigate(compareUrl({ ...params, b: encodeAnswers(own), bn }))}>
               Compare with my result →
             </button>
           )}
-          <button type="button" className={own.length > 0 ? quietBtn : primaryBtn} onClick={takeFresh}>
+          <button type="button" className={`${own.length > 0 ? btnSecondary : btnPrimary} w-full`} onClick={takeFresh}>
             {own.length > 0 ? 'Retake the test first' : 'Take the test →'}
+          </button>
+        </div>
+
+        <div className="mt-3 flex w-full flex-col gap-2 rounded-card border-2 border-dashed border-ink bg-paper p-4 text-center">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">How you see them</span>
+          <p className="text-xs leading-relaxed text-ink">
+            Answer the way {params.an || 'they'} would actually act. You’ll see where your read of them differs from their own.
+          </p>
+          <button
+            type="button"
+            className={`${btnSecondary} mt-1 w-full text-xs`}
+            onClick={() => onStartObserver?.(bn)}
+          >
+            Answer {selectObserverQuestions(CONTENT).length} questions about {params.an || 'them'} →
           </button>
         </div>
       </Reveal>
@@ -165,30 +209,16 @@ function Invite({ inviter, params, own }: { inviter: Person; params: ComparePara
   )
 }
 
-function PersonHead({ p, label }: { p: Person; label: string }) {
-  const arch = getArchetype(p.profile.archetype.id)!
-  return (
-    <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-      <span className="max-w-full truncate text-xs uppercase tracking-[0.2em] text-white/50">{label}</span>
-      <Link to={`/archetypes/${arch.id}`} className={`rounded font-display text-xl font-bold leading-tight sm:text-2xl ${ring}`} style={{ color: accentOf(arch.id) }}>
-        {arch.name}
-      </Link>
-      <span className="font-mono text-[10px] tracking-wider text-white/45">{facetCode(arch.id, p.profile.facets ?? [], CONTENT)}</span>
-    </div>
-  )
-}
+const CHIP_BG = { a: '#FFE2D9', b: '#DBE4FF', both: '#D3F9D8', still: '#FFFFFF' } as const
 
-function Chip({ who, what, tone }: { who: string; what: string; tone: 'a' | 'b' | 'both' | 'still' }) {
-  const cls = {
-    a: 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100',
-    b: 'border-fuchsia-300/30 bg-fuchsia-300/10 text-fuchsia-100',
-    both: 'border-emerald-300/30 bg-emerald-300/10 text-emerald-100',
-    still: 'border-white/10 bg-white/[0.03] text-white/50',
-  }[tone]
+function Chip({ who, what, tone }: { who: string; what: string; tone: keyof typeof CHIP_BG }) {
   return (
-    <span className={`inline-flex max-w-full items-baseline gap-1.5 rounded-full border px-3 py-1 text-xs ${cls}`}>
-      <span className="truncate font-medium">{who}</span>
-      <span className="opacity-80">{what}</span>
+    <span
+      className={`inline-flex max-w-full items-baseline gap-1.5 rounded-full border-2 border-ink px-3 py-1 text-sm ${tone === 'still' ? 'border-dashed text-ink-faint' : ''}`}
+      style={{ background: CHIP_BG[tone] }}
+    >
+      <span className="truncate font-bold">{who}</span>
+      <span>{what}</span>
     </span>
   )
 }
@@ -197,11 +227,11 @@ function Section({ title, blurb, children }: { title: string; blurb: string; chi
   return (
     <Reveal>
       <section className="flex flex-col gap-3">
-        <div>
-          <h2 className="text-sm uppercase tracking-widest text-white/60">{title}</h2>
-          <p className="text-xs text-white/40">{blurb}</p>
+        <div className="px-1">
+          <h2 className="font-serif text-2xl font-bold tracking-tight">{title}</h2>
+          <p className="text-sm text-ink-soft">{blurb}</p>
         </div>
-        <ul className="flex flex-col gap-2">{children}</ul>
+        <ul className="flex flex-col gap-2.5">{children}</ul>
       </section>
     </Reveal>
   )
@@ -217,30 +247,29 @@ function ComparisonView({ a, b }: { a: Person; b: Person }) {
     .map(id => CONTENT.motives?.motives.find(m => m.id === id))
     .filter((m): m is NonNullable<typeof m> => !!m)
   const nothing = cmp.clicks.length + cmp.clashes.length + cmp.blindSpots.length === 0
-  const row = 'flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3'
+  const row = `${panel} flex flex-col gap-2.5 px-4 py-3.5`
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-12">
       <Reveal>
-        <Beam glow innerClassName="bg-gradient-to-br from-cyan-500/15 via-transparent to-fuchsia-500/15 px-5 py-8">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <PersonHead p={a} label={nameA} />
-            <span aria-hidden="true" className="font-display text-2xl text-white/30">×</span>
-            <PersonHead p={b} label={nameB} />
+        <section className="flex flex-col items-center gap-10">
+          <div className="relative grid w-full grid-cols-2 gap-3 sm:gap-6">
+            <ProfileCard p={a} label={nameA} tilt="-rotate-2" />
+            <ProfileCard p={b} label={nameB} tilt="rotate-2" />
+            <div className="absolute bottom-0 left-1/2 flex h-24 w-24 -translate-x-1/2 translate-y-1/2 flex-col items-center justify-center rounded-full border-2 border-ink bg-coral shadow-hard sm:h-28 sm:w-28">
+              <span className="font-serif text-3xl font-bold leading-none tabular-nums sm:text-4xl">{pct}%</span>
+              <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em]">in sync</span>
+            </div>
           </div>
-          <div className="mt-7 flex flex-col items-center gap-1">
-            <span className="font-display text-5xl font-bold tabular-nums">{pct}%</span>
-            <span className="text-xs uppercase tracking-[0.25em] text-white/50">in sync</span>
-            <span className="mt-2 rounded-full bg-accent/15 px-3 py-1 text-xs font-medium uppercase tracking-wide text-accent-soft">{syncBand(cmp.sync)}</span>
-          </div>
-        </Beam>
+          <span className={`${tag} mt-4 bg-white px-4 py-1 text-sm`}>{syncBand(cmp.sync)}</span>
+        </section>
       </Reveal>
 
       {cmp.clicks.length > 0 && (
         <Section title="Where you click" blurb="Same situation, same shift — the things you’ll never have to explain to each other.">
           {cmp.clicks.map(r => (
             <li key={`${r.axisId}.${r.dimId}`} className={row}>
-              <span className="text-sm text-white/85">{where(r)}…</span>
+              <span className="font-serif text-lg font-semibold leading-snug">{where(r)}…</span>
               <div className="flex flex-wrap gap-2"><Chip who="you both" what={act(r, r.a)} tone="both" /></div>
             </li>
           ))}
@@ -251,7 +280,7 @@ function ComparisonView({ a, b }: { a: Person; b: Person }) {
         <Section title="Where you clash" blurb="Same situation, opposite pull. This is where the friction — or the balance — lives.">
           {cmp.clashes.map(r => (
             <li key={`${r.axisId}.${r.dimId}`} className={row}>
-              <span className="text-sm text-white/85">{where(r)}…</span>
+              <span className="font-serif text-lg font-semibold leading-snug">{where(r)}…</span>
               <div className="flex flex-wrap gap-2">
                 <Chip who={nameA} what={act(r, r.a)} tone="a" />
                 <Chip who={nameB} what={act(r, r.b)} tone="b" />
@@ -267,7 +296,7 @@ function ComparisonView({ a, b }: { a: Person; b: Person }) {
             const moverA = r.mover === 'a'
             return (
               <li key={`${r.axisId}.${r.dimId}`} className={row}>
-                <span className="text-sm text-white/85">{where(r)}…</span>
+                <span className="font-serif text-lg font-semibold leading-snug">{where(r)}…</span>
                 <div className="flex flex-wrap gap-2">
                   <Chip who={moverA ? nameA : nameB} what={act(r, moverA ? r.a : r.b)} tone={moverA ? 'a' : 'b'} />
                   <Chip who={moverA ? nameB : nameA} what="no change" tone="still" />
@@ -278,54 +307,180 @@ function ComparisonView({ a, b }: { a: Person; b: Person }) {
         </Section>
       )}
 
-      {nothing && (
-        <p className="text-center text-sm text-white/60">
-          You two barely overlap — you each move on completely different things.
-        </p>
-      )}
+      {nothing && <p className="text-center text-[15px] text-ink-soft">You two barely overlap — you each move on completely different things.</p>}
 
       {motives.length > 0 && (
         <Reveal>
-          <section className="flex flex-col gap-2 rounded-xl border-l-2 border-accent/60 bg-accent/5 px-4 py-3">
-            <h2 className="text-sm uppercase tracking-widest text-white/60">What runs you both</h2>
+          <section className={`${card} bg-coral-soft p-5`}>
+            <h2 className={eyebrow}>What runs you both</h2>
             {motives.map(m => (
-              <p key={m.id} className="text-sm text-white/85">
-                Your swings share a motive: <span className="font-medium text-accent-soft">{m.name}</span> — {m.tagline}.
+              <p key={m.id} className="mt-2 text-[15px]">
+                Your swings share a motive: <span className="font-serif text-xl font-bold">{m.name}</span> — {m.tagline}.
               </p>
             ))}
           </section>
         </Reveal>
       )}
 
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-4">
         <CopyLink label="Copy this comparison" />
-        {!a.isYou && !b.isYou && (
-          <Link to="/" className={`rounded text-xs text-white/45 transition-colors hover:text-white/75 ${ring}`}>
-            Take the test yourself
-          </Link>
-        )}
+        {!a.isYou && !b.isYou && <Link to="/" className={btnGhost}>Take the test yourself</Link>}
       </div>
     </div>
   )
 }
 
-/** `/compare?a=…[&b=…]` — an invite (one answer set) or a finished side-by-side (two). */
+function ObserverFlowView({
+  targetName,
+  onComplete,
+  onCancel,
+}: {
+  targetName: string
+  onComplete: (answers: Answer[]) => void
+  onCancel: () => void
+}) {
+  const questions = selectObserverQuestions(CONTENT)
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between border-b-2 border-ink pb-4">
+        <div>
+          <span className={eyebrow}>Observer Read</span>
+          <h1 className="font-serif text-2xl font-bold">What would {targetName} do?</h1>
+          <p className="text-xs text-ink-soft">
+            {questions.length} questions · Every “you” means {targetName}. Answer the way they’d actually act, not how they’d describe themselves.
+          </p>
+        </div>
+        <button type="button" onClick={onCancel} className={btnGhost}>Cancel</button>
+      </div>
+      <QuizFlow questions={questions} onComplete={onComplete} />
+    </div>
+  )
+}
+
+const GAP_TAG: Record<ObserverGapItem['kind'], { label: string; bg: string; color: string }> = {
+  stronger: { label: 'They see a bigger shift', bg: '#D3F9D8', color: '#2B8A3E' },
+  weaker: { label: 'They see a smaller shift', bg: '#FFF3BF', color: '#8F5B00' },
+  opposite: { label: 'They see the opposite', bg: '#FFE3E3', color: '#C92A2A' },
+  aligned: { label: 'Same read', bg: '#FFFFFF', color: '#6B6B6B' },
+}
+
+function GapList({ title, blurb, items }: { title: string; blurb: string; items: ObserverGapItem[] }) {
+  return (
+    <Reveal>
+      <section className="flex flex-col gap-3">
+        <div className="px-1">
+          <h2 className="font-serif text-2xl font-bold tracking-tight">{title}</h2>
+          <p className="text-sm text-ink-soft">{blurb}</p>
+        </div>
+        <ul className="flex flex-col gap-3">
+          {items.map(item => (
+            <li key={`${item.axisId}-${item.dimId}`} className={`${panel} flex flex-col gap-2 px-4 py-3.5`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-serif text-lg font-semibold">{item.headline}</span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider"
+                  style={{ background: GAP_TAG[item.kind].bg, color: GAP_TAG[item.kind].color }}
+                >
+                  {GAP_TAG[item.kind].label}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-ink">{item.explanation}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </Reveal>
+  )
+}
+
+function ObserverGrowthView({ subject, observer, observerName }: { subject: Person; observer: Answer[]; observerName: string }) {
+  const report = computeObserverReport(subject.answers, observer, CONTENT, subject.name, observerName)
+
+  return (
+    <div className="flex flex-col gap-10">
+      <Reveal>
+        <section className="flex flex-col items-center gap-6 text-center">
+          <span className={`${tag} bg-coral-soft`}>Observer read</span>
+          <h1 className="font-serif text-3xl font-bold sm:text-4xl">
+            How {observerName} sees {subject.name}
+          </h1>
+          <p className="max-w-md text-[15px] leading-relaxed text-ink-soft">{report.summary}</p>
+          {report.congruence !== null && (
+            <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-2 border-ink bg-coral shadow-hard sm:h-28 sm:w-28">
+              <span className="font-serif text-3xl font-bold leading-none tabular-nums sm:text-4xl">{Math.round(report.congruence * 100)}%</span>
+              <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em]">agreement</span>
+            </div>
+          )}
+        </section>
+      </Reveal>
+
+      {report.blindSpots.length > 0 && (
+        <GapList
+          title="Read differently"
+          blurb={`Where ${observerName}’s answers describe a clearly different shift from ${subject.name}’s own.`}
+          items={report.blindSpots}
+        />
+      )}
+
+      {report.clearMirror.length > 0 && (
+        <GapList
+          title="Read the same"
+          blurb={`Strong shifts ${observerName} and ${subject.name} describe the same way.`}
+          items={report.clearMirror}
+        />
+      )}
+
+      <div className="flex flex-col items-center gap-4 pt-4">
+        <CopyLink label="Copy this read" />
+        <Link to="/" className={btnGhost}>Take the test yourself</Link>
+      </div>
+    </div>
+  )
+}
+
+/** `/compare?a=…[&b=…][&o=…]` — an invite (one run), side by side (two runs), or someone's observer read of `a`. */
 export function ComparePage() {
   // Subscribed, so invite → side-by-side (same path, new query) re-renders.
   const params = parseCompare(useSearch())
   const own = ownAnswers()
+  const [isObserving, setIsObserving] = useState(false)
+  const [observerName, setObserverName] = useState('')
+
   const a = params ? toPerson(params.a, params.an, own) : null
   const b = params?.b ? toPerson(params.b, params.bn, own) : null
+  const observer = params?.o ? decodeAnswers(params.o) : null
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-5 py-10 sm:py-14">
-      <nav className="flex items-center justify-between text-sm">
-        <Link to="/" className={`rounded text-white/50 transition-colors hover:text-white/85 ${ring}`}>← Facets</Link>
-        <Link to="/archetypes" className={`rounded font-medium text-accent-soft transition-colors hover:text-accent ${ring}`}>
-          The archetypes →
-        </Link>
-      </nav>
-      {!params || !a ? <Broken /> : !b ? <Invite inviter={a} params={params} own={own} /> : <ComparisonView a={a} b={b} />}
+    <div className="min-h-screen w-full">
+      <SiteNav />
+      <main className="mx-auto flex w-full max-w-2xl flex-col px-4 py-10 sm:py-14">
+        {!params || !a ? (
+          <Broken />
+        ) : isObserving ? (
+          <ObserverFlowView
+            targetName={a.name}
+            onComplete={obsAnswers => {
+              navigate(compareUrl({ a: params.a, an: params.an, o: encodeAnswers(obsAnswers), on: observerName || undefined }))
+              setIsObserving(false)
+            }}
+            onCancel={() => setIsObserving(false)}
+          />
+        ) : observer?.length ? (
+          <ObserverGrowthView subject={a} observer={observer} observerName={params.on ?? 'Someone'} />
+        ) : !b ? (
+          <Invite
+            inviter={a}
+            params={params}
+            own={own}
+            onStartObserver={name => {
+              setObserverName(name ?? '')
+              setIsObserving(true)
+            }}
+          />
+        ) : (
+          <ComparisonView a={a} b={b} />
+        )}
+      </main>
     </div>
   )
 }

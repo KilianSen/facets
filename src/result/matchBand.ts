@@ -1,19 +1,17 @@
 /**
- * Qualitative match strength from the [0,1] confidence — friendlier than a raw percentage.
+ * Qualitative read strength from the cast's confidence — the share of your shifting that your cast
+ * (layers, combos and blends) explains × the share of situations you answered — friendlier than a %.
  *
- * Calibrated to the distribution the engine actually produces: a COMPLETED run answers all 6
- * axes (sufficiency ≈ 1) and the 22 archetypes are densely packed, so margin sits just above
- * 0.5 — real confidences cluster in ~[0.50, 0.63]. Thresholds are set so a finished run never
- * reads as a deflating "Slight lean" (that floor is reserved for partial/abandoned runs that
- * never reach the result page), and clearer matches earn "Strong match".
- * (Split ratio is a calibration knob — revisit with a computeProfile sweep if content changes.)
- *
- * Re-swept after the curvature rework (22 archetypes + a CURVE_WEIGHT distance term): a 4000-run
- * random-answer sweep still spreads cleanly (p50 ≈ 0.51, p90 ≈ 0.56, all 22 archetypes reachable),
- * so the denser field didn't collapse the bands — thresholds held.
+ * Calibrated on 2,000-run quick-read sweeps per population (layered cast, 45 types):
+ * - people shaped like one type (with answer noise): p25 0.70 · p50 0.86 · p75 0.94
+ * - genuine blends (2–4 unrelated shifts):             p25 0.53 · p50 0.71 · p75 0.85
+ * - random clickers:                                  p25 0.49 · p50 0.59 · p90 0.73
+ * A quick read measures each behaviour once, so noise can't be told from complexity by consistency;
+ * the bands keep "Clear read" rare for random clicking (~8%) while most coherent people reach it or
+ * "Solid read". Re-sweep if content or cast rules change.
  */
 export function matchBand(confidence: number): string {
-  if (confidence >= 0.53) return 'Strong match'
-  if (confidence >= 0.49) return 'Solid match'
-  return 'Slight lean'
+  if (confidence >= 0.75) return 'Clear read'
+  if (confidence >= 0.5) return 'Solid read'
+  return 'Loose read'
 }

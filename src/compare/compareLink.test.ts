@@ -15,14 +15,21 @@ describe('compareUrl / parseCompare', () => {
     expect(parseCompare(new URL(url).search)).toEqual({ a, an: 'Sam', b, bn: 'Alex' })
   })
 
+  it('keeps an observer read apart from the second person’s own run', () => {
+    const url = compareUrl({ a, an: 'Sam', o: b, on: 'Alex' }, 'https://facets.test')
+    expect(parseCompare(new URL(url).search)).toEqual({ a, an: 'Sam', o: b, on: 'Alex' })
+    expect(parseCompare(new URL(url).search)?.b).toBeUndefined()
+  })
+
   it('builds an invite with only one side', () => {
     expect(parseCompare(new URL(compareUrl({ a }, 'https://x.test')).search)).toEqual({ a, an: undefined, b: undefined, bn: undefined })
   })
 
-  it('rejects a missing or corrupt `a`, and drops a corrupt `b`', () => {
+  it('rejects a missing or corrupt `a`, and drops a corrupt `b` or `o`', () => {
     expect(parseCompare('')).toBeNull()
     expect(parseCompare('?a=garbage')).toBeNull()
     expect(parseCompare(`?a=${a}&b=garbage`)?.b).toBeUndefined()
+    expect(parseCompare(`?a=${a}&o=garbage`)?.o).toBeUndefined()
   })
 })
 

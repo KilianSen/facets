@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ArchetypeHeader } from './ArchetypeHeader'
 import { SignatureSection } from './SignatureSection'
 import { DimensionStory } from './DimensionStory'
+import { SettingsSection } from './SettingsSection'
 import { matchBand } from './matchBand'
 import type { Archetype, BehaviorDim, Contingency, Profile } from '../engine/types'
 
@@ -13,16 +15,17 @@ const DIMS: BehaviorDim[] = [
 ]
 
 describe('matchBand', () => {
-  it('maps confidence to a qualitative band (never a percentage)', () => {
-    expect(matchBand(0.8)).toBe('Strong match')
-    expect(matchBand(0.5)).toBe('Solid match')
-    expect(matchBand(0.1)).toBe('Slight lean')
+  it('maps confidence to a qualitative read (never a percentage)', () => {
+    expect(matchBand(0.9)).toBe('Clear read')
+    expect(matchBand(0.55)).toBe('Solid read')
+    expect(matchBand(0.1)).toBe('Loose read')
   })
-  it('never deflates a completed run: the realistic floor (~0.50) is at least a Solid match', () => {
-    // Completed runs answer all axes; confidence clusters ~[0.50, 0.63]. None should read "Slight lean".
-    expect(matchBand(0.50)).toBe('Solid match')
-    expect(matchBand(0.515)).toBe('Solid match')
-    expect(matchBand(0.6)).toBe('Strong match')
+  it('uses the calibrated boundaries', () => {
+    // Typical one-type people sit ~0.86 (Clear); blends ~0.71 (Solid); random clickers ~0.59 but rarely ≥ 0.75.
+    expect(matchBand(0.75)).toBe('Clear read')
+    expect(matchBand(0.74)).toBe('Solid read')
+    expect(matchBand(0.5)).toBe('Solid read')
+    expect(matchBand(0.49)).toBe('Loose read')
   })
 })
 
@@ -34,24 +37,36 @@ describe('ArchetypeHeader', () => {
   })
   it('shows a qualitative band, not a percentage', () => {
     render(<ArchetypeHeader archetype={arch} confidence={0.82} />)
-    expect(screen.getByText('Strong match')).toBeInTheDocument()
+    expect(screen.getByText('Clear read')).toBeInTheDocument()
     expect(screen.queryByText(/%/)).not.toBeInTheDocument()
   })
-  it('shows a runner-up streak when provided', () => {
-    render(<ArchetypeHeader archetype={arch} confidence={0.82} runnerUpName="The Nurturer" />)
-    expect(screen.getByText(/streak of The Nurturer/)).toBeInTheDocument()
+  it('gives the near-miss runner-up its own card that can join the 3D comparison', async () => {
+    const nurturer: Archetype = { id: 'nurturer', code: 'NURTUR', name: 'The Nurturer', tagline: 'softens', copy: '', signature: { stakes: { warmth: 3 } } }
+    const onCompare = vi.fn()
+    render(<ArchetypeHeader archetype={arch} confidence={0.82} runnerUp={nurturer} onCompare={onCompare} />)
+    expect(screen.getByText('So close')).toBeInTheDocument()
+    expect(screen.getByText('You almost got…')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'The Nurturer' })).toHaveAttribute('href', '/archetypes/nurturer')
+    await userEvent.click(screen.getByRole('button', { name: 'Compare The Nurturer in 3D' }))
+    expect(onCompare).toHaveBeenCalledWith('nurturer')
   })
-  it('shows secondary facets and the full code in place of the runner-up line', () => {
-    const clutch: Archetype = { id: 'clutch', code: 'CLUTCH', name: 'The Clutch', tagline: 'rises', copy: '', signature: {} }
+  it('names the co-stars under the headline and gives each a card with the shift that earned it', () => {
+    const clutch: Archetype = { id: 'clutch', code: 'CLUTCH', name: 'The Clutch', tagline: 'rises', copy: '', signature: { stakes: { composure: 3 } } }
     render(
       <ArchetypeHeader
-        archetype={arch} confidence={0.82} runnerUpName="The Nurturer"
-        code="VAULT · CLUTCH" facets={[{ archetype: clutch, lens: 'under pressure' }]}
+        archetype={arch} confidence={0.82} code="VAULT · CLUTCH"
+        facets={[{ archetype: clutch, lens: 'under pressure', axisId: 'stakes', tell: 'When the stakes are high, you stay calm.' }]}
+        onCompare={() => {}} comparingId="clutch"
       />,
     )
     expect(screen.getByText('VAULT · CLUTCH')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /The Clutch under pressure/ })).toHaveAttribute('href', '/archetypes/clutch')
-    expect(screen.queryByText(/streak of/)).not.toBeInTheDocument()
+    expect(screen.getByText('with')).toBeInTheDocument()
+    expect(screen.getAllByText('The Clutch')).toHaveLength(2) // headline + card
+    expect(screen.getByText('Your co-stars')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'The Clutch' })).toHaveAttribute('href', '/archetypes/clutch')
+    expect(screen.getByText('Under pressure, I’m…')).toBeInTheDocument()
+    expect(screen.getByText('When the stakes are high, you stay calm.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Compare The Clutch in 3D' })).toHaveAttribute('aria-pressed', 'true')
   })
 })
 
@@ -110,8 +125,7 @@ describe('SignatureSection', () => {
     expect(screen.queryByText(/remarkably consistent/i)).not.toBeInTheDocument()
   })
 
-  it('marks the shifts that back the archetype and exposes a per-shift tooltip', () => {
-    // warmth agrees with the prototype (slope +3 vs +3) → supporting; boldness has no prototype value.
+  it('draws the signature as a gem you can explore situation by situation, with the archetype as a ghost', async () => {
     const sig: Profile['signature'] = {
       closeness: {
         warmth: { slope: 3, curvature: 0, levels: [] },
@@ -133,16 +147,16 @@ describe('SignatureSection', () => {
         archetype={matched}
       />,
     )
-    // Exactly one chip claims to support the match, and it carries the archetype name.
-    const supporting = screen
-      .getAllByRole('button')
-      .filter(b => /supports your the vault match/i.test(b.getAttribute('aria-label') ?? ''))
-    expect(supporting).toHaveLength(1)
-    expect(supporting[0].className).toContain('border-accent/40')
-    // The tooltip spells the shift out in plain language.
-    expect(screen.getByText(/you get warm as .* rises/i)).toBeInTheDocument()
-    // The caption points the lit lines at the matched archetype.
-    expect(screen.getByText(/point to The Vault/)).toBeInTheDocument()
+    const situations = screen.getByRole('group', { name: 'Situations' })
+    // Opens on the situation that moves you most…
+    expect(within(situations).getByRole('button', { name: 'Closeness' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('↑ get warm')).toBeInTheDocument()
+    // …and any other situation can be explored.
+    await userEvent.click(within(situations).getByRole('button', { name: 'Stakes' }))
+    expect(within(situations).getByRole('button', { name: 'Stakes' })).toHaveAttribute('aria-pressed', 'true')
+    // The matched archetype is drawn behind as a labelled dashed outline.
+    expect(screen.getByText(/dashed outline is The Vault/)).toBeInTheDocument()
+    expect(screen.getByText(/- - - The Vault/)).toBeInTheDocument()
   })
 })
 
@@ -166,5 +180,35 @@ describe('DimensionStory', () => {
   it('shows a middle-of-the-road fallback when nothing anchors or swings', () => {
     render(<DimensionStory dims={DIMS} ranges={{ warmth: { min: 0, max: 0, typical: 0 }, boldness: { min: 0, max: 0, typical: 0 } }} />)
     expect(screen.getByText(/near the middle/i)).toBeInTheDocument()
+  })
+})
+
+describe('SettingsSection', () => {
+  // Plenty of answers and some raw offset, but no claim cleared the engine's bars.
+  const quiet = (setting: 'romance' | 'work' | 'social' | 'family') =>
+    ({ setting, sampleSize: 9, questions: 3, offsets: { warmth: 0.6, boldness: -0.4 }, claims: [] })
+
+  it('shows nothing without a claim, however many answers or raw offsets there are', () => {
+    const { container } = render(
+      <SettingsSection reports={{ romance: quiet('romance'), work: quiet('work'), social: quiet('social'), family: quiet('family') }} />,
+    )
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('shows each claim with its setting and how many questions back it', () => {
+    const text = 'At work, you take charge more than you do elsewhere in the same situations.'
+    render(
+      <SettingsSection
+        reports={{
+          romance: quiet('romance'), social: quiet('social'), family: quiet('family'),
+          work: { ...quiet('work'), claims: [{ dimId: 'lead', offset: 2, questions: 4, text }] },
+        }}
+      />,
+    )
+    expect(screen.getByText('Where the setting matters')).toBeInTheDocument()
+    expect(screen.getByText('Work')).toBeInTheDocument()
+    expect(screen.getByText(text)).toBeInTheDocument()
+    expect(screen.getByText('Seen across 4 questions.')).toBeInTheDocument()
+    expect(screen.queryByText('Dating')).not.toBeInTheDocument()
   })
 })

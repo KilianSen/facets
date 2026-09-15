@@ -4,8 +4,8 @@ import { ARCHETYPES } from '../content/archetypes'
 /**
  * Presentation metadata for the archetype browse pages. Archetypes are organised into the situation
  * "lens" they pivot on (the axis their signature lives on), plus two cross-axis groups and the flat
- * one. Each group gets a signature hue — jewel tones on ink, cohesive with the cyan↔fuchsia brand —
- * so the gallery reads as an organised spectrum rather than 22 undifferentiated tiles.
+ * one. Each group gets a flat print colour — saturated enough to read as a stroke or swatch on cream,
+ * always paired with ink text — so the gallery reads as an organised spectrum, not a wall of lookalike tiles.
  */
 export interface ArchetypeGroup {
   id: string
@@ -22,47 +22,47 @@ export const ARCHETYPE_GROUPS: ArchetypeGroup[] = [
   {
     id: 'closeness', label: 'Closeness', spectrum: 'a stranger → someone close',
     blurb: 'How your guard moves with the people in the room.',
-    accent: '#22d3ee', archetypeIds: ['vault', 'open_book', 'peacekeeper', 'ride_or_die'],
+    accent: '#E4572E', archetypeIds: ['vault', 'open_book', 'peacekeeper', 'ride_or_die', 'home_turf', 'ringleader', 'plus_one', 'fierce_loyalist'],
   },
   {
     id: 'audience', label: 'Audience', spectrum: 'just you → all eyes on you',
     blurb: 'Who you become when the room is watching.',
-    accent: '#d946ef', archetypeIds: ['performer', 'backstage', 'menace', 'wallflower'],
+    accent: '#D63F8C', archetypeIds: ['performer', 'backstage', 'menace', 'host', 'stage_fright', 'frontman', 'emcee', 'statesperson'],
   },
   {
     id: 'stakes', label: 'Stakes', spectrum: 'trivial → everything on the line',
     blurb: 'What pressure does to you when it actually counts.',
-    accent: '#f59e0b', archetypeIds: ['clutch', 'fumble', 'nurturer'],
+    accent: '#E3A008', archetypeIds: ['clutch', 'fumble', 'nurturer', 'cold_front', 'surgeon', 'first_responder'],
   },
   {
     id: 'power', label: 'Power', spectrum: 'no leverage → you hold the cards',
     blurb: 'How your voice changes with who has the upper hand.',
-    accent: '#818cf8', archetypeIds: ['operator', 'underdog'],
+    accent: '#3B5BDB', archetypeIds: ['operator', 'underdog', 'reluctant_boss', 'patron', 'captain', 'ivory_tower', 'good_boss', 'heavyweight'],
   },
   {
     id: 'initiative', label: 'Initiative', spectrum: 'they came to you → you make the move',
     blurb: 'Whether you light up chasing or being chased.',
-    accent: '#34d399', archetypeIds: ['spark', 'prize'],
+    accent: '#2B9348', archetypeIds: ['spark', 'prize', 'overthinker', 'closer', 'waiting_game', 'first_mover', 'deputy'],
   },
   {
     id: 'energy', label: 'Energy', spectrum: 'running on empty → fully charged',
     blurb: 'How much your battery runs the show.',
-    accent: '#fb7185', archetypeIds: ['battery', 'runs_on_fumes'],
+    accent: '#F08C00', archetypeIds: ['battery', 'runs_on_fumes', 'hangry', 'night_and_day', 'peace_at_all_costs', 'social_battery'],
   },
   {
-    id: 'cross', label: 'Shape-shifters', spectrum: 'many axes at once',
-    blurb: 'The ones who pivot on more than one thing.',
-    accent: '#a78bfa', archetypeIds: ['chameleon', 'diplomat'],
+    id: 'cross', label: 'Blends', spectrum: 'several situations at once',
+    blurb: 'One pattern that runs across more than one situation — they can stand in for several separate types.',
+    accent: '#7048E8', archetypeIds: ['chameleon', 'diplomat', 'wallflower', 'main_character'],
   },
   {
     id: 'curve', label: 'Both-ways', spectrum: 'low → middle → high',
-    blurb: 'Non-monotonic types — strongest in the middle, not at one end.',
-    accent: '#5eead4', archetypeIds: ['sweet_spot', 'small_room'],
+    blurb: 'Non-monotonic types — shape curves rather than simple slopes.',
+    accent: '#0C8599', archetypeIds: ['sweet_spot', 'small_room', 'butterfly', 'peer', 'green_light', 'middle_gear', 'all_or_nothing', 'adrenaline_addict', 'arena_intimacy', 'hierarch'],
   },
   {
     id: 'constant', label: 'The Constant', spectrum: 'context barely moves them',
     blurb: 'Same with everyone, everywhere.',
-    accent: '#94a3b8', archetypeIds: ['constant'],
+    accent: '#868E96', archetypeIds: ['constant'],
   },
 ]
 
@@ -79,7 +79,7 @@ export function groupOf(id: string): ArchetypeGroup | undefined {
 }
 
 export function accentOf(id: string): string {
-  return GROUP_BY_ID.get(id)?.accent ?? '#22d3ee'
+  return GROUP_BY_ID.get(id)?.accent ?? '#FF5A36'
 }
 
 /** Other archetypes that pivot on the same situation — the natural "if not this, then…" set. */

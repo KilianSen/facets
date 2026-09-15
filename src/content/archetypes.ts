@@ -34,6 +34,30 @@ export const ARCHETYPES: Archetype[] = [
     signature: { closeness: { warmth: 2, approach: 2, lead: 2, composure: 2 } },
     baseline: { warmth: 1, composure: 1, lead: 0.5 },
   },
+  {
+    id: 'home_turf', code: 'HOME', name: 'The Home Turf', tagline: 'unfiltered with your people',
+    copy: 'Strangers get your polite, even-keeled side. The people closest to you get the real thing — blunt, heated, no filter. You fight with the ones you love because you can.',
+    signature: { closeness: { directness: 3, composure: -3 } },
+    baseline: { directness: 1, composure: -0.5 },
+  },
+  {
+    id: 'ringleader', code: 'RING', name: 'The Ringleader', tagline: 'runs the crew',
+    copy: 'With your people you are the one calling the plan and daring everyone into it. Around strangers you hang back, follow the flow and play it safe.',
+    signature: { closeness: { lead: 3, boldness: 3 } },
+    baseline: { lead: 0.5, boldness: 0.5 },
+  },
+  {
+    id: 'plus_one', code: 'PLUS1', name: 'The Plus-One', tagline: 'your people lead, you tag along',
+    copy: 'With strangers you will take charge and take chances. With your people you happily hand over the plan and play it safe — they have got it.',
+    signature: { closeness: { lead: -3, boldness: -3 } },
+    baseline: { lead: -0.5 },
+  },
+  {
+    id: 'fierce_loyalist', code: 'FIERCE', name: 'The Fierce Loyalist', tagline: 'all-in and all-heat with your people',
+    copy: 'With the people closest to you, you go all in — warmer and closer, and also blunter and more heated. Strangers get a cooler, more polite and even version of you.',
+    signature: { closeness: { warmth: 3, approach: 3, directness: 3, composure: -3 } },
+    baseline: { warmth: 0.5, directness: 0.5 },
+  },
   // ---------- audience ----------
   {
     id: 'performer', code: 'PERF', name: 'The Performer', tagline: 'comes alive with eyes on you',
@@ -59,6 +83,37 @@ export const ARCHETYPES: Archetype[] = [
     signature: { audience: { approach: -3, warmth: -2 }, energy: { approach: -2 } },
     baseline: { approach: -1, warmth: -0.5 },
   },
+  {
+    id: 'host', code: 'HOST', name: 'The Host', tagline: 'works the room',
+    copy: 'The fuller the room, the warmer you get — you pull people in, make introductions, check everyone is okay. One-on-one you are quieter than people expect.',
+    // approach 2, not 3: the audience backbone only moves approach on its warm option, so that's all it can show.
+    signature: { audience: { warmth: 3, approach: 2 } },
+    baseline: { warmth: 1, approach: 0.5 },
+  },
+  {
+    id: 'stage_fright', code: 'STAGE', name: 'The Stage Fright', tagline: 'shakes when watched',
+    copy: 'Alone or with a few, you are steady and happy to take charge. Put eyes on you and your nerves take the wheel — you rattle, second-guess and hand over the lead.',
+    signature: { audience: { composure: -3, lead: -3 } },
+    baseline: { composure: -0.5 },
+  },
+  {
+    id: 'frontman', code: 'FRONT', name: 'The Frontman', tagline: 'steadiest on stage',
+    copy: 'An audience settles you. The more people watching, the calmer you get and the more naturally you step up to run things.',
+    signature: { audience: { composure: 3, lead: 3 } },
+    baseline: { composure: 1, lead: 0.5 },
+  },
+  {
+    id: 'emcee', code: 'EMCEE', name: 'The Emcee', tagline: 'runs the room and warms it up',
+    copy: 'Eyes on you bring out your best — calmer, in charge, and warmer, pulling everyone in. One-on-one you are quieter and happier to follow.',
+    signature: { audience: { warmth: 3, approach: 2, composure: 3, lead: 3 } },
+    baseline: { warmth: 1, composure: 0.5 },
+  },
+  {
+    id: 'statesperson', code: 'STATES', name: 'The Statesperson', tagline: 'diplomatic under the lights',
+    copy: 'In private you speak with zero filter—raw, heated, and blunt. Put a room of people in front of you, and your poise locks in: you become measured, diplomatic, and calm, curating every word for the room.',
+    signature: { audience: { directness: -3 } },
+    baseline: { directness: -0.5 },
+  },
   // ---------- stakes ----------
   {
     id: 'clutch', code: 'CLUTCH', name: 'The Clutch', tagline: 'rises to pressure',
@@ -78,6 +133,24 @@ export const ARCHETYPES: Archetype[] = [
     signature: { stakes: { warmth: 3, approach: 3 } },
     baseline: { warmth: 1, approach: 0.5 },
   },
+  {
+    id: 'cold_front', code: 'COLD', name: 'The Cold Front', tagline: 'goes cold under pressure',
+    copy: 'When it really matters, you take the feelings out of it — cooler, more distant, straight to the point. When nothing is riding on it, you are easygoing and warm.',
+    signature: { stakes: { warmth: -3, approach: -3, directness: 2 } },
+    baseline: { directness: 0.5, composure: 0.5 },
+  },
+  {
+    id: 'surgeon', code: 'SURGN', name: 'The Surgeon', tagline: 'calm, decisive, switched off',
+    copy: 'When it really counts you get calm, take charge and take the risk — and switch your feelings off to do it. When nothing is riding on it, you are warmer and more easygoing.',
+    signature: { stakes: { composure: 3, lead: 2, boldness: 2, warmth: -3, approach: -3, directness: 2 } },
+    baseline: { composure: 1, directness: 0.5 },
+  },
+  {
+    id: 'first_responder', code: 'FIRST', name: 'The First Responder', tagline: 'steady and warm in a crisis',
+    copy: 'The heavier it gets, the more you show up on both fronts — calm and in charge, and warmer and closer to the people going through it.',
+    signature: { stakes: { composure: 3, lead: 2, boldness: 2, warmth: 3, approach: 3 } },
+    baseline: { composure: 1, warmth: 0.5 },
+  },
   // ---------- power ----------
   {
     id: 'operator', code: 'OPERTR', name: 'The Operator', tagline: 'reads the room for leverage',
@@ -90,6 +163,42 @@ export const ARCHETYPES: Archetype[] = [
     copy: 'When you hold no cards you get bold and blunt; hand you the power and you suddenly play it careful.',
     signature: { power: { directness: -3, boldness: -3 } },
     baseline: { directness: 0.5, boldness: 1 },
+  },
+  {
+    id: 'reluctant_boss', code: 'RELUCT', name: 'The Reluctant Boss', tagline: 'power makes you quieter',
+    copy: 'Hand you the upper hand and you go careful — softer words, and you would rather someone else ran it. With nothing to lose, you speak up and steer.',
+    signature: { power: { directness: -3, lead: -3 } },
+    baseline: { directness: -0.5 },
+  },
+  {
+    id: 'patron', code: 'PATRON', name: 'The Patron', tagline: 'generous with the upper hand',
+    copy: 'When you hold the power you get warmer and more generous — you look after people and bring them in. When you have none, you keep your distance and your guard up.',
+    signature: { power: { warmth: 3, approach: 3 } },
+    baseline: { warmth: 0.5 },
+  },
+  {
+    id: 'captain', code: 'CAPTN', name: 'The Captain', tagline: 'takes the wheel when it’s yours',
+    copy: 'Give you the upper hand and you step up and run things — calmly, without needing to get loud about it. Without it, you are happy to let someone else steer.',
+    signature: { power: { lead: 3 } },
+    baseline: { lead: 0.5 },
+  },
+  {
+    id: 'ivory_tower', code: 'IVORY', name: 'The Ivory Tower', tagline: 'power makes you distant',
+    copy: 'The more power you hold, the cooler and more distant you get — people are kept at arm’s length from the top. On equal footing or below, you are warmer and closer.',
+    signature: { power: { warmth: -3, approach: -3 } },
+    baseline: { warmth: -0.5 },
+  },
+  {
+    id: 'good_boss', code: 'GDBOSS', name: 'The Good Boss', tagline: 'steers and looks after people',
+    copy: 'With the upper hand you say what you think and take the lead — and you look after your people while you do it. Without it, you go quieter and keep more to yourself.',
+    signature: { power: { directness: 3, lead: 3, warmth: 3, approach: 3 } },
+    baseline: { lead: 0.5, warmth: 0.5 },
+  },
+  {
+    id: 'heavyweight', code: 'HVYWGT', name: 'The Heavyweight', tagline: 'bets big with the upper hand',
+    copy: 'Give you leverage, institutional backing, or the upper hand and you play fearless — audacious swings, bold calls, and taking all the space. Without leverage, you keep your head down and play it safe.',
+    signature: { power: { boldness: 3, lead: 2 } },
+    baseline: { boldness: 0.5 },
   },
   // ---------- initiative ----------
   {
@@ -104,6 +213,36 @@ export const ARCHETYPES: Archetype[] = [
     signature: { initiative: { approach: -3, boldness: -3 } },
     baseline: { approach: -1, boldness: -0.5 },
   },
+  {
+    id: 'overthinker', code: 'OVRTHK', name: 'The Overthinker', tagline: 'rattled when it’s on you',
+    copy: 'When they come to you, you are calm and say what you mean. When you would have to make the first move, your head gets loud — you hedge, soften and second-guess.',
+    signature: { initiative: { directness: -3, composure: -3 } },
+    baseline: { composure: -0.5 },
+  },
+  {
+    id: 'closer', code: 'CLOSER', name: 'The Closer', tagline: 'steadiest when it’s on you',
+    copy: 'Making the first move settles you — calm, clear, straight to the point. When it lands in your lap instead, you are more hesitant and roundabout.',
+    signature: { initiative: { directness: 3, composure: 3 } },
+    baseline: { composure: 0.5 },
+  },
+  {
+    id: 'waiting_game', code: 'WAITNG', name: 'The Waiting Game', tagline: 'open when chosen, frozen when choosing',
+    copy: 'When someone comes to you, you are warm, bold and at ease. When it is on you to make the move, you freeze up, hedge and hang back.',
+    signature: { initiative: { approach: -3, boldness: -3, directness: -3, composure: -3 } },
+    baseline: { composure: -0.5 },
+  },
+  {
+    id: 'first_mover', code: 'FRSTMV', name: 'The First Mover', tagline: 'steps up when no one will',
+    copy: 'When a group is stalling and silence takes over, you cannot sit on your hands — you take the reins, make the call, and get things moving. When someone else is already driving, you happily stay in your lane.',
+    signature: { initiative: { lead: 3, boldness: 2 } },
+    baseline: { lead: 0.5 },
+  },
+  {
+    id: 'deputy', code: 'DEPUTY', name: 'The Deputy', tagline: 'leads only when called upon',
+    copy: 'You never force yourself into a leadership vacuum — uninvited, you hang back and let things settle. But once you are officially tapped, asked, or appointed, you step up and run the mission with total dedication.',
+    signature: { initiative: { lead: -3, approach: -2 } },
+    baseline: { lead: -0.5 },
+  },
   // ---------- energy ----------
   {
     id: 'battery', code: 'BATTRY', name: 'The Battery', tagline: 'all-in when charged',
@@ -116,6 +255,30 @@ export const ARCHETYPES: Archetype[] = [
     copy: 'Counterintuitively, you go hardest when you are running on nothing — exhaustion makes you reckless, not cautious.',
     signature: { energy: { approach: -3, boldness: -3 } },
     baseline: { boldness: 1, composure: -0.5 },
+  },
+  {
+    id: 'hangry', code: 'HANGRY', name: 'The Hangry', tagline: 'snappy on empty',
+    copy: 'Fully charged, you are patient and easy to be around. Running low, the filter goes — you get short, blunt and quick to snap.',
+    signature: { energy: { directness: -3, composure: 3 } },
+    baseline: { directness: 0.5 },
+  },
+  {
+    id: 'night_and_day', code: 'NGTDAY', name: 'The Night & Day', tagline: 'charged and sunny, drained and snappy',
+    copy: 'Fully charged, you are social, bold and patient. Running on empty, you pull back from everyone and get short with whoever is left.',
+    signature: { energy: { approach: 3, boldness: 3, directness: -3, composure: 3 } },
+    baseline: {},
+  },
+  {
+    id: 'peace_at_all_costs', code: 'PEACEC', name: 'Peace at All Costs', tagline: 'fights when charged, folds when drained',
+    copy: 'When energized you have the stamina for friction—candid, bold, and unyielding. But running on fumes, your filter defaults to appeasement: you nod along and keep the peace just to survive the room.',
+    signature: { energy: { directness: 3, composure: -3 } },
+    baseline: { directness: 0.5, composure: -0.5 },
+  },
+  {
+    id: 'social_battery', code: 'SOCBAT', name: 'The Social Battery', tagline: 'warm when charged, cold when drained',
+    copy: 'When your battery is full you pour boundless warmth, patience, and engagement into everyone around you. When it drains, the light turns off completely — you go cold, distant, and need total silence to recover.',
+    signature: { energy: { warmth: 3 } },
+    baseline: { warmth: 0.5 },
   },
   // ---------- cross-axis / shape ----------
   {
@@ -130,6 +293,14 @@ export const ARCHETYPES: Archetype[] = [
     signature: { stakes: { directness: -3 }, power: { directness: -3 } },
     baseline: { directness: -1, composure: 0.5 },
   },
+  {
+    id: 'main_character', code: 'MAIN', name: 'The Main Character', tagline: 'rises to every big moment',
+    copy: 'More at stake, more eyes on you, more power in your hands — whatever turns the moment up, you get steadier and step into the lead.',
+    // The union of The Clutch, The Frontman and The Operator: a blend wins exactly when all three situations
+    // fit — then one idea ("rises to every big moment") beats three separate types.
+    signature: { stakes: { composure: 3, lead: 2, boldness: 2 }, audience: { composure: 3, lead: 3 }, power: { lead: 3, directness: 3 } },
+    baseline: { composure: 1, lead: 1 },
+  },
   // ---------- non-monotonic / both-ways (curve, not slope) ----------
   {
     id: 'sweet_spot', code: 'SWEET', name: 'The Sweet Spot', tagline: 'peaks under medium pressure',
@@ -143,6 +314,62 @@ export const ARCHETYPES: Archetype[] = [
     copy: 'A handful of people is your zone — you open all the way up. Alone you go quiet, and a big crowd shuts you back down again. You need some eyes on you, just not all of them.',
     signature: {},
     curve: { audience: { boldness: -3 } },
+    baseline: {},
+  },
+  {
+    id: 'butterfly', code: 'BTRFLY', name: 'The Social Butterfly', tagline: 'best with the in-betweens',
+    copy: 'Acquaintances and friends-of-friends get your warmest, most open side. Total strangers and your very closest people both get a cooler, more guarded version.',
+    signature: {},
+    curve: { closeness: { warmth: -3, approach: -3 } },
+    baseline: { warmth: 0.5, approach: 0.5 },
+  },
+  {
+    id: 'peer', code: 'PEER', name: 'The Peer', tagline: 'thrives on equal footing',
+    copy: 'You run best on level ground. Hand you total leverage or strip you of power and you clam up or play it careful; side-by-side with equals, you speak your mind and take the initiative.',
+    signature: {},
+    curve: { power: { directness: -3, lead: -3 } },
+    baseline: {},
+  },
+  {
+    id: 'green_light', code: 'GREEN', name: 'The Green Light', tagline: 'boldest with a mutual cue',
+    copy: 'You need a shared signal. If making the move is completely on you, you freeze; if someone chases you down too hard, you dodge. But give you a subtle, mutual cue and you lean all the way in.',
+    signature: {},
+    curve: { initiative: { approach: -3, boldness: -3 } },
+    baseline: { approach: 0.5 },
+  },
+  {
+    id: 'middle_gear', code: 'MIDGR', name: 'The Middle Gear', tagline: 'runs best in a steady rhythm',
+    copy: 'You do not thrive on manic caffeine highs or running on fumes. Over-caffeinated you scatter; exhausted you vanish. Put you in a calm, sustainable mid-range gear and your focus is unbreakable.',
+    signature: {},
+    curve: { energy: { composure: -3 } },
+    baseline: { composure: 0.5 },
+  },
+  {
+    id: 'all_or_nothing', code: 'ALLNON', name: 'The All-or-Nothing', tagline: 'stranger or soulmate, no in-between',
+    copy: 'With total strangers you are effortless and chatty, and with your inner circle you are all-in and deeply loving. But casual acquaintances and lukewarm mutuals bring out your stiffest, most awkward, and guarded self.',
+    signature: {},
+    curve: { closeness: { warmth: 3, approach: 3 } },
+    baseline: {},
+  },
+  {
+    id: 'adrenaline_addict', code: 'ADREN', name: 'The Adrenaline Addict', tagline: 'only wakes up in the fire',
+    copy: 'Low stakes you are playful and relaxed; extreme emergency you are calm, fearless, and dialed in. But moderate, everyday routine bores you to tears — you need either total play or a five-alarm crisis to function.',
+    signature: {},
+    curve: { stakes: { composure: 3, boldness: 3 } },
+    baseline: {},
+  },
+  {
+    id: 'arena_intimacy', code: 'ARENA', name: 'Arena & Intimacy', tagline: 'electric 1-on-1 or in front of crowds',
+    copy: 'In an intimate one-on-one you are deeply engaged, and on a big stage you light up and command the room. But medium dinner parties of six people make you fade into the background — you need either pure intimacy or a full arena.',
+    signature: {},
+    curve: { audience: { boldness: 3 } },
+    baseline: {},
+  },
+  {
+    id: 'hierarch', code: 'HIERAR', name: 'The Hierarch', tagline: 'clarity at the top or bottom',
+    copy: 'You are completely comfortable executing orders from a strong leader, and equally comfortable giving orders when you are in charge. But vague peer committees with no clear hierarchy leave you frustrated and stalled.',
+    signature: {},
+    curve: { power: { lead: 3, directness: 3 } },
     baseline: {},
   },
   // ---------- flat ----------

@@ -90,3 +90,24 @@ describe('ComparePage — invite', () => {
     expect(screen.getByText(/compare link doesn’t work/)).toBeInTheDocument()
   })
 })
+
+describe('ComparePage — observer read', () => {
+  it('shows an observer read from its own link parameter, never as a side-by-side of two runs', () => {
+    at(compareUrl({ a: encodeAnswers(warmUpClose), an: 'Sam', o: encodeAnswers(coolUpClose), on: 'Alex' }))
+    render(<Root />)
+    expect(screen.getByText('How Alex sees Sam')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Read differently' })).toBeInTheDocument()
+    expect(screen.getAllByText('They see the opposite').length).toBeGreaterThan(0)
+    expect(screen.getByText(/agreement/i)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Where you clash' })).not.toBeInTheDocument()
+  })
+
+  it('starts the observer questions from an invite, telling the observer who “you” is', async () => {
+    at(compareUrl({ a: encodeAnswers(warmUpClose), an: 'Sam' }))
+    render(<Root />)
+    expect(screen.getByText('How you see them')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Answer 12 questions about Sam/ }))
+    expect(screen.getByText('What would Sam do?')).toBeInTheDocument()
+    expect(screen.getByText(/Every “you” means Sam/)).toBeInTheDocument()
+  })
+})

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { encodeAnswers, decodeAnswers, shareUrl, sameAnswers } from './permalink'
 import { CONTENT } from '../content'
 import { selectQuestions, pickSharpenQuestions } from '../content/selectQuestions'
+import { LIFE_QUESTIONS } from '../content/lifeQuestions'
 import { motiveQuestionId } from '../engine'
 import type { Answer, Question } from '../engine/types'
 
@@ -15,7 +16,7 @@ function rng(seed: number) {
   return () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296 }
 }
 
-/** A full realistic run: base questions (some flavor promoted to depends), a sharpen round, and motives. */
+/** A realistic run: the quick read (some flavor promoted to depends) — plus, for a deep dive, more ranked base questions and across-your-life items — then a sharpen round and motives. */
 function realisticRun(mode: 'short' | 'deep', seed: number): Answer[] {
   const r = rng(seed)
   const pick = <T,>(xs: T[]) => xs[Math.floor(r() * xs.length)]
@@ -28,7 +29,11 @@ function realisticRun(mode: 'short' | 'deep', seed: number): Answer[] {
     }
     return { questionId: q.id, mode: 'single', optionId: pick(q.options).id }
   }
-  const base = selectQuestions(CONTENT, mode, r).map(answerOf)
+  const quick = selectQuestions(CONTENT, r)
+  const deepExtra = mode === 'deep'
+    ? [...CONTENT.questions.filter(q => !q.reserve && !quick.includes(q)).slice(0, 8), ...LIFE_QUESTIONS.slice(0, 10)]
+    : []
+  const base = [...quick, ...deepExtra].map(answerOf)
   const sharpen = pickSharpenQuestions(CONTENT, 'closeness', new Set(), 4, r).map(answerOf)
   const why: Answer[] = [
     { questionId: motiveQuestionId('closeness'), mode: 'single', optionId: 'trust' },
@@ -78,7 +83,7 @@ describe('compact (v2) encoding', () => {
   it('is small: a deep run fits in a few hundred characters, ~25x under the legacy form', () => {
     const run = realisticRun('deep', 7)
     const encoded = encodeAnswers(run)
-    expect(encoded.length).toBeLessThan(500)
+    expect(encoded.length).toBeLessThan(600)
     expect(legacyEncode(run).length / encoded.length).toBeGreaterThan(20)
   })
 

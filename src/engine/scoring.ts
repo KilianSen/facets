@@ -1,9 +1,8 @@
 import { type Answer, type Content, type Profile, type Contingency } from './types'
 import { extractRules, extractBaseline } from './rules'
 import { computeSignature } from './signature'
-import { matchArchetype } from './match'
 import { axisStability, axisSwing } from './stability'
-import { computeFacets } from './facets'
+import { computeCast, castFacets, type Cast } from './cast'
 
 export function describeContingency(axisId: string, dimId: string, slope: number, content: Content): string {
   const axis = content.axes.find(a => a.id === axisId)
@@ -29,6 +28,18 @@ export function describeCurvature(axisId: string, dimId: string, curvature: numb
     : `When ${axis.name.toLowerCase()} sits in the middle, you ${dim.highLabel}; at either extreme, you ${dim.lowLabel}.`
 }
 
+/** The cast's leftover shifts as plain-language tells — a trend, or a "both ways" bend when that dominates. */
+export function unexplainedTells(cast: Cast, content: Content): Contingency[] {
+  return cast.unexplained.map(u => {
+    const curvy = Math.abs(u.curvature) >= CURVE_MEANINGFUL && Math.abs(u.curvature) > Math.abs(u.slope)
+    return {
+      axis: u.axisId, dim: u.dimId, slope: u.slope, curvature: u.curvature,
+      kind: curvy ? 'curve' as const : 'slope' as const,
+      text: curvy ? describeCurvature(u.axisId, u.dimId, u.curvature, content) : describeContingency(u.axisId, u.dimId, u.slope, content),
+    }
+  })
+}
+
 export function computeProfile(answers: Answer[], content: Content): Profile {
   // Reserve (sharpen) answers are extreme parallel probes (±2 / neutral) held out of the base
   // measurement; their verdict is surfaced separately via sharpenReadout. Folding them into the
@@ -38,7 +49,16 @@ export function computeProfile(answers: Answer[], content: Content): Profile {
   const rules = extractRules(answers.filter(a => !reserveIds.has(a.questionId)), content)
   const { signature, flexibility } = computeSignature(rules, content)
   const baseline = extractBaseline(answers.filter(a => !reserveIds.has(a.questionId)), content)
-  const archetype = matchArchetype(signature, baseline, content)
+  // Compositional: each situation you shift on gets its type; the one explaining the most leads.
+  // Evidence = the situations you answered "it depends" on — even if you picked the neutral option there.
+  const questionAxis = new Map(content.questions.map(q => [q.id, q.axis]))
+  const answeredAxes = answers
+    .filter(a => a.mode === 'depends' && !reserveIds.has(a.questionId))
+    .map(a => questionAxis.get(a.questionId))
+    .filter((x): x is string => !!x)
+  const stab = axisStability(rules, content)
+  const cast = computeCast(signature, baseline, content, answeredAxes, stab)
+  const archetype = { id: cast.lead, confidence: cast.confidence, runnerUpId: cast.runnerUpId }
 
   const dimensionRanges: Profile['dimensionRanges'] = {}
   for (const dim of content.dims) {
@@ -70,8 +90,9 @@ export function computeProfile(answers: Answer[], content: Content): Profile {
 
   return {
     archetype, signature, topContingencies: cells.slice(0, 5), dimensionRanges, baseline, flexibility,
-    facets: computeFacets(signature, archetype.id, content),
-    axisStability: axisStability(rules, content),
+    facets: castFacets(cast),
+    unexplained: unexplainedTells(cast, content),
+    axisStability: stab,
     axisSwing: axisSwing(signature, content),
   }
 }

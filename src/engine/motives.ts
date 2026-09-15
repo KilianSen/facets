@@ -1,5 +1,5 @@
 import { type Answer, type AxisId, type Content, type Motive, type Signature } from './types'
-import { axisStrength } from './facets'
+import { axisStrength } from './cast'
 import { describeContingency, describeCurvature, CURVE_MEANINGFUL } from './scoring'
 
 /** An axis must shift at least this hard before we ask why. */
